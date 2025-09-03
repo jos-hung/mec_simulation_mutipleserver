@@ -1,15 +1,23 @@
 import os, io, time, argparse
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Header, Request, Form
 from fastapi.responses import JSONResponse
 from PIL import Image
 import torch
 import torchvision.transforms as T
 from torchvision import models
 import uvicorn
+from typing import Dict, Any
+import logging
+from pydantic import BaseModel
+
+logger = logging.getLogger('uvicorn.error')
+logger.setLevel(logging.DEBUG)
 
 torch.set_num_threads(1)
 
+
 app = FastAPI()
+
 
 
 def load_model(name: str):
@@ -65,46 +73,65 @@ def load_model(name: str):
         preprocess = weights.transforms()
         classes = weights.meta["categories"]
     elif name == "maskrcnn":
-        weights = models.detection.MaskRCNN_ResNet50_FPN_Weights.DEFAULT
-        model = models.detection.maskrcnn_resnet50_fpn(weights=weights).eval()
-        preprocess = weights.transforms()
-        classes = weights.meta["categories"]
+       ç
     else:
         raise ValueError(f"Unsupported model: {name}")
+    print(f"load model {name} has been completed!!!")
     return model, preprocess, classes
 
-MODEL_NAME = os.environ.get("MODEL_NAME", "resnet18").lower()
-model, preprocess, classes = load_model(MODEL_NAME)
+# MODEL_NAME = os.environ.get("MODEL_NAME", "resnet18").lower()
+
+
+class Item(BaseModel):
+    name: str
+
 
 @torch.inference_mode()
 @app.post("/infer")
-async def infer(file: UploadFile = File(...)):
+async def infer(model: str = Form(...), file: UploadFile = File(...)):
+    logger.debug('this is a debug message')
+    logging.info(f"Request to /infer: {model}")
+    MODEL_NAME = model
+    model, preprocess, classes = load_model(MODEL_NAME)
     t0 = time.perf_counter()
     data = await file.read()
     img = Image.open(io.BytesIO(data)).convert("RGB")
     x = preprocess(img).unsqueeze(0)
+    out = None
+    CLASS_MODELS = ["resnet18", "resnet50", "mobilenetv2", "efficientnet_b0", "resnet34", "resnet101"]
+    DETECT_MODELS = ["ssd", "retinanet", "fasterrcnn", "maskrcnn"]
 
-    if MODEL_NAME in ("resnet18", "resnet50"):
-        y = model(x)
-        probs = torch.softmax(y[0], dim=0)
-        k = min(5, probs.numel())
-        topk = torch.topk(probs, k=k)
-        out = [
-            {"class": classes[idx], "prob": float(prob)}
-            for prob, idx in zip(topk.values.tolist(), topk.indices.tolist())
-        ]
-    else:  # SSD
-        preds = model(x)[0]
-        out = []
-        for score, label, box in zip(preds["scores"], preds["labels"], preds["boxes"]):
-            s = float(score)
-            if s < 0.5:
-                continue
-            out.append({
-                "label": classes[int(label)],
-                "score": s,
-                "box": [float(v) for v in box.tolist()],
-            })
+    out = []
+
+    with torch.no_grad():
+        y = model(x)  # x đã có batch dimension
+
+        if MODEL_NAME in CLASS_MODELS:
+            # Classification
+            probs = torch.softmax(y[0], dim=0)  # batch_size=1
+            k = min(5, probs.numel())
+            topk = torch.topk(probs, k=k)
+
+            out = [
+                {"class": classes[idx], "prob": float(prob)}
+                for prob, idx in zip(topk.values.tolist(), topk.indices.tolist())
+            ]
+
+        elif MODEL_NAME in DETECT_MODELS:
+            # Object Detection
+            preds = y[0]  # batch_size=1
+            for score, label, box in zip(preds["scores"], preds["labels"], preds["boxes"]):
+                s = float(score)
+                if s < 0.5:
+                    continue
+                out.append({
+                    "label": classes[int(label)],
+                    "score": s,
+                    "box": [float(v) for v in box.tolist()],
+                })
+
+        else:
+            raise ValueError(f"Unsupported MODEL_NAME: {MODEL_NAME}")
 
     ms = (time.perf_counter() - t0) * 1000
     return JSONResponse({"model": MODEL_NAME, "ms": ms, "result": out})
@@ -122,4 +149,5 @@ if __name__ == "__main__":
 
     os.environ["MODEL_NAME"] = args.model
     model, preprocess, classes = load_model(args.model)
-    uvicorn.run(app, host=args.host, port=args.port)
+    # uvicorn.run(app, host=args.host, port=args.port)
+    uvicorn.run(app, host=args.host, port=args.port, log_level="debug")

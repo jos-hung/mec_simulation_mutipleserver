@@ -1,6 +1,6 @@
 import os, time, itertools, statistics
 import httpx, yaml
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import JSONResponse
 import uvicorn
 
@@ -14,7 +14,7 @@ ITER = {k: itertools.cycle(v) for k, v in POOLS.items() if v}
 METRICS = {"count": 0, "latencies": [], "start": time.time()}
 
 @app.post("/infer/{model}")
-async def route(model: str, file: UploadFile = File(...)):
+async def route(model: str, file: UploadFile = File(...), forms = None):
     model = model.lower()
     if model not in POOLS or not POOLS[model]:
         return JSONResponse({"error": f"No backends for {model}"}, status_code=503)
@@ -22,8 +22,14 @@ async def route(model: str, file: UploadFile = File(...)):
     url = next(ITER[model]) + "/infer"
     data = await file.read()
     t0 = time.perf_counter()
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        r = await client.post(url, files={"file": (file.filename, data, file.content_type or "application/octet-stream")})
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        r = await client.post(
+                                url,
+                                files={
+                                    "file": (file.filename, data, file.content_type or "application/octet-stream"),
+                                    "model": (None, model)  # gửi model như một form field
+                                }
+                            )
     dt = (time.perf_counter() - t0) * 1000
 
     METRICS["latencies"].append(dt)

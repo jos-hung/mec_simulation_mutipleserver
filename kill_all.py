@@ -1,12 +1,12 @@
 import json, os, signal, time
-
+import shutil
 try:
     with open("pids.json", "r") as f:
         pids = json.load(f)
 except FileNotFoundError:
     print("No pids.json found.")
     raise SystemExit(0)
-
+shutil.rmtree("logs")
 all_pids = []
 if pids.get("scheduler"):
     all_pids.append(pids["scheduler"])
@@ -29,3 +29,14 @@ for pid in all_pids:
     except ProcessLookupError:
         pass
 print("All processes terminated.")
+
+import psutil, os
+
+for port in range(7000, 8601):
+    for conn in psutil.net_connections():
+        if conn.laddr.port == port:
+            print(f"Killing PID {conn.pid} on port {port}")
+            try:
+                os.kill(conn.pid, 9)
+            except Exception as e:
+                print(e)

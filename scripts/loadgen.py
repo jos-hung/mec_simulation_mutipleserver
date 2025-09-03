@@ -16,14 +16,14 @@ async def worker(client, url, files, total, results):
             r.raise_for_status()
             dt = (time.perf_counter() - t0) * 1000
             results.append(dt)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"error {e}")
         total[0] += 1
 
 async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scheduler", default="http://0.0.0.0:8000")
-    ap.add_argument("--model", choices=["resnet18","resnet50","ssd"], default="resnet18")
+    ap.add_argument("--model", type=str, default="resnet18")
     ap.add_argument("--images", default="./images")
     ap.add_argument("--total", type=int, default=100000)
     ap.add_argument("--concurrency", type=int, default=64)
@@ -31,7 +31,7 @@ async def main():
 
     url = f"{args.scheduler}/infer/{args.model}"
     os.makedirs(args.images, exist_ok=True)
-
+    print(url)
     # Nếu thư mục trống, tạo một vài ảnh synthetic nhẹ để thử tải
     imgs = glob.glob(os.path.join(args.images, "*"))
     if not imgs:

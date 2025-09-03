@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python scripts/loadgen.py --model resnet18 --total 100 --concurrency 64 &
+python scripts/loadgen.py --model resnet18 --total 100 --concurrency 64 --scheduler http://127.0.0.1:8510 &
 python scripts/loadgen.py --model resnet50 --total 100 --concurrency 64 &
 python scripts/loadgen.py --model ssd --total 100 --concurrency 64 &
 
