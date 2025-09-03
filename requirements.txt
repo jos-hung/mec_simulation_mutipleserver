@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+httpx
+numpy
+pillow
+pyyaml
+psutil
+torch==2.2.*
+torchvision==0.17.*
+python-multipart
