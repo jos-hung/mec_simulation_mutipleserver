@@ -32,7 +32,6 @@ async def main():
     url = f"{args.scheduler}/infer/{args.model}"
     os.makedirs(args.images, exist_ok=True)
     print(url)
-    # Nếu thư mục trống, tạo một vài ảnh synthetic nhẹ để thử tải
     imgs = glob.glob(os.path.join(args.images, "*"))
     if not imgs:
         from PIL import Image
@@ -61,7 +60,7 @@ async def main():
     else:
         avg = p50 = p95 = p99 = 0.0
 
-    print({
+    print({"model": args.model,
         "sent": args.total,
         "duration_s": dur,
         "throughput_rps": rps,

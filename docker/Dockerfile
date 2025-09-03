@@ -4,6 +4,7 @@ WORKDIR /app
 RUN pwd
 
 COPY requirements.txt .
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 
@@ -15,5 +16,8 @@ COPY kill_all.py ./src/kill_all.py
 COPY scripts ./src/scripts
 COPY run.sh ./src/run.sh
 COPY config.yaml ./src/config.yaml
+COPY .git ./src/.git
+COPY post_from_host.py ./src/post_from_host.py
+COPY inference_request.py ./src/inference_request.py
 
-EXPOSE 8000
+EXPOSE 10000

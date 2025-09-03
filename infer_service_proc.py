@@ -22,7 +22,6 @@ app = FastAPI()
 
 def load_model(name: str):
     name = name.lower()
-    print(f"Loading model: {name}")
     if name == "resnet18":
         weights = models.ResNet18_Weights.DEFAULT
         model = models.resnet18(weights=weights).eval()
@@ -89,8 +88,8 @@ class Item(BaseModel):
 @torch.inference_mode()
 @app.post("/infer")
 async def infer(model: str = Form(...), file: UploadFile = File(...)):
-    logger.debug('this is a debug message')
-    logging.info(f"Request to /infer: {model}")
+    # logger.debug('this is a debug message')
+    # logging.info(f"Request to /infer: {model}")
     MODEL_NAME = model
     model, preprocess, classes = load_model(MODEL_NAME)
     t0 = time.perf_counter()
@@ -137,7 +136,7 @@ async def infer(model: str = Form(...), file: UploadFile = File(...)):
     return JSONResponse({"model": MODEL_NAME, "ms": ms, "result": out})
 
 @app.get("/health")
-async def health():
+async def health(MODEL_NAME):
     return {"model": MODEL_NAME, "status": "ok"}
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ async def route(model: str, file: UploadFile = File(...), forms = None):
     url = next(ITER[model]) + "/infer"
     data = await file.read()
     t0 = time.perf_counter()
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(timeout=240.0) as client:
         r = await client.post(
                                 url,
                                 files={

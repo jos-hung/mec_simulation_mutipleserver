@@ -6,7 +6,10 @@ try:
 except FileNotFoundError:
     print("No pids.json found.")
     raise SystemExit(0)
-shutil.rmtree("logs")
+try:
+    shutil.rmtree("logs")
+except FileNotFoundError:
+    print("No logs/ folder found.")
 all_pids = []
 if pids.get("scheduler"):
     all_pids.append(pids["scheduler"])
@@ -32,7 +35,7 @@ print("All processes terminated.")
 
 import psutil, os
 
-for port in range(7000, 8601):
+for port in range(8000, 11000):
     for conn in psutil.net_connections():
         if conn.laddr.port == port:
             print(f"Killing PID {conn.pid} on port {port}")
