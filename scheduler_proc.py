@@ -1,4 +1,4 @@
-import os, time, itertools, statistics
+import os, time, itertools, statistic, argparse
 import httpx, yaml
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import JSONResponse
@@ -14,12 +14,13 @@ ITER = {k: itertools.cycle(v) for k, v in POOLS.items() if v}
 METRICS = {"count": 0, "latencies": [], "start": time.time()}
 
 @app.post("/infer/{model}")
-async def route(model: str, file: UploadFile = File(...), forms = None):
+async def route(model: str, file: UploadFile = File(...), port: str = Form(...)):
     model = model.lower()
     if model not in POOLS or not POOLS[model]:
         return JSONResponse({"error": f"No backends for {model}"}, status_code=503)
-
-    url = next(ITER[model]) + "/infer"
+    tem_url = next(ITER[model])
+    url = tem_url.split(":")[0]+":"+tem_url.split(":")[1]+":"+str(port)+ "/infer"
+    print(f"do inference for {model} {url} {model} {port}")
     data = await file.read()
     t0 = time.perf_counter()
     async with httpx.AsyncClient(timeout=240.0) as client:
@@ -62,6 +63,8 @@ async def health():
     return {"status": "ok", "backends": {k: len(v) for k, v in POOLS.items()}}
 
 if __name__ == "__main__":
-    host = cfg.get("scheduler", {}).get("host", "0.0.0.0")
-    port = int(cfg.get("scheduler", {}).get("port", 8000))
-    uvicorn.run(app, host=host, port=port)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--host", type=str, default="0.0.0.0")
+    ap.add_argument("--port", type=str, default="10000")    
+    args = ap.parse_args()
+    uvicorn.run(app, host=args.host, port=int(args.port))

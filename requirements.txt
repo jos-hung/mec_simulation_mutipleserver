@@ -8,3 +8,8 @@ psutil
 torch==2.2.*
 torchvision==0.17.*
 python-multipart
+statistic
+pandas
+pydantic
+
+matplotlib
