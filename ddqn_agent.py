@@ -13,14 +13,17 @@ class QNetwork(nn.Module):
         self.fc2 = nn.Linear(hidden_size, 128)
         self.fc3 = nn.Linear(128, 64)
         self.fc4 = nn.Linear(64, action_size)
+        self.relu = nn.ReLU()
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))  # fc3 activation
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.relu(x)
+        x = self.fc3(x)  # fc3 activation
         # Chọn activation cuối: tanh hoặc softmax
-        # x = torch.tanh(self.fc4(x))        # option 1: tanh
+        x = torch.tanh(self.fc4(x))        # option 1: tanh
         # # x = F.softmax(self.fc4(x), dim=1)  # option 2: softmax nếu muốn xác suất
-        x = self.fc4(x)
+        # x = self.fc4(x)
         return x
 
 

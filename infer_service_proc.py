@@ -1,7 +1,7 @@
 import os, io, time, argparse
 from fastapi import FastAPI, File, UploadFile, Header, Request, Form
 from fastapi.responses import JSONResponse
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import torch
 import torchvision.transforms as T
 from torchvision import models
@@ -9,7 +9,7 @@ import uvicorn
 from typing import Dict, Any
 import logging
 from pydantic import BaseModel
-
+import numpy as np
 logger = logging.getLogger('uvicorn.error')
 logger.setLevel(logging.DEBUG)
 
@@ -18,7 +18,7 @@ torch.set_num_threads(1)
 
 app = FastAPI()
 
-
+model_dict ={}
 
 def load_model(name: str):
     name = name.lower()
@@ -28,7 +28,6 @@ def load_model(name: str):
         model = models.resnet18(weights=weights).eval()
         preprocess = weights.transforms()
         classes = weights.meta["categories"]
-
     elif name == "resnet34":
         weights = models.ResNet34_Weights.DEFAULT
         model = models.resnet34(weights=weights).eval()
@@ -77,68 +76,78 @@ def load_model(name: str):
     else:
         raise ValueError(f"Unsupported model: {name}")
     print(f"load model {name} has been completed!!!")
+    model_dict['name'] = [model, preprocess, classes, name]
+
     return model, preprocess, classes
 
 # MODEL_NAME = os.environ.get("MODEL_NAME", "resnet18").lower()
 
 
-class Item(BaseModel):
-    name: str
-
-
 @torch.inference_mode()
 @app.post("/infer")
 async def infer(model: str = Form(...), file: UploadFile = File(...)):
-    logger.debug('this is a debug message')
-    logging.info(f"Request to /infer: {model}")
-    MODEL_NAME = model
-    model, preprocess, classes = load_model(MODEL_NAME)
-    t0 = time.perf_counter()
-    data = await file.read()
-    img = Image.open(io.BytesIO(data)).convert("RGB")
-    x = preprocess(img).unsqueeze(0)
-    out = None
+    # logger.debug('this is a debug message')
+    model, preprocess, classes = model_dict["name"][0:3]
+    MODEL_NAME = model_dict['name'][3]
+    logging.info(f"Request to /infer: {MODEL_NAME} -- model loaded {MODEL_NAME}")
+    print(f"Request to /infer: {MODEL_NAME} -- model loaded {MODEL_NAME}")
+    print(f"start inference {MODEL_NAME} at core service")
+
+    
+    try:
+        t0 = time.perf_counter()
+        data = await file.read()
+        img = Image.open(io.BytesIO(data)).convert("RGB")
+        x = preprocess(img).unsqueeze(0)
+        out = []
+    except Exception as e:
+        print(f"Preprocess error: {e}")
+        return JSONResponse({"error": f"Preprocess error: {str(e)}"}, status_code=500)
+    
     CLASS_MODELS = ["resnet18", "resnet50", "mobilenetv2", "efficientnet_b0", "resnet34", "resnet101"]
     DETECT_MODELS = ["ssd", "retinanet", "fasterrcnn", "maskrcnn"]
 
-    out = []
+    try:
+        with torch.no_grad():
+            y = model(x)  # x đã có batch dimension
 
-    with torch.no_grad():
-        y = model(x)  # x đã có batch dimension
+            if MODEL_NAME in CLASS_MODELS:
+                # Classification
 
-        if MODEL_NAME in CLASS_MODELS:
-            # Classification
-            probs = torch.softmax(y[0], dim=0)  # batch_size=1
-            k = min(5, probs.numel())
-            topk = torch.topk(probs, k=k)
+                probs = torch.softmax(y[0], dim=0)  # batch_size=1
+                k = min(5, probs.numel())
 
-            out = [
-                {"class": classes[idx], "prob": float(prob)}
-                for prob, idx in zip(topk.values.tolist(), topk.indices.tolist())
-            ]
+                topk = torch.topk(probs, k=k)
 
-        elif MODEL_NAME in DETECT_MODELS:
-            # Object Detection
-            preds = y[0]  # batch_size=1
-            for score, label, box in zip(preds["scores"], preds["labels"], preds["boxes"]):
-                s = float(score)
-                if s < 0.5:
-                    continue
-                out.append({
-                    "label": classes[int(label)],
-                    "score": s,
-                    "box": [float(v) for v in box.tolist()],
-                })
+                out = [
+                    {"class": classes[idx], "prob": float(prob)}
+                    for prob, idx in zip(topk.values.tolist(), topk.indices.tolist())
+                ]
 
-        else:
-            raise ValueError(f"Unsupported MODEL_NAME: {MODEL_NAME}")
+            elif MODEL_NAME in DETECT_MODELS:
+                # Object Detection
+                preds = y[0]  # batch_size=1
+                for score, label, box in zip(preds["scores"], preds["labels"], preds["boxes"]):
+                    s = float(score)
+                    if s < 0.5:
+                        continue
+                    out.append({
+                        "label": classes[int(label)],
+                        "score": s,
+                        "box": [float(v) for v in box.tolist()],
+                    })
 
+            else:
+                raise ValueError(f"Unsupported MODEL_NAME: {MODEL_NAME}")
+    except Exception as e:
+        print(f"an error happens {e}")
     ms = (time.perf_counter() - t0) * 1000
+    print(f"completd computing for {MODEL_NAME}")
     return JSONResponse({"model": MODEL_NAME, "ms": ms, "result": out})
 
 @app.get("/health")
 async def health():
-    return {"model": MODEL_NAME, "status": "ok"}
+    return {"model": model_dict['name'][3], "status": "ok"}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

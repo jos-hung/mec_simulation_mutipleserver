@@ -33,6 +33,7 @@ async def inference(id_picture:int, model:str, port_base:int = 10000):
     buf = io.BytesIO()
     img.save(buf, format="JPEG")
     buf.seek(0) 
+    print("read picture finished")
     try:
         async with httpx.AsyncClient(timeout=120.0) as client:                
             files = {"file": (os.path.basename(path), buf, "application/octet-stream")}

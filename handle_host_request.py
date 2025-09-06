@@ -63,7 +63,7 @@ async def worker():
                 
                 total_delay = current_time - float(task.arrival_time)
                 await results.put({task.task_id: (dt, result, total_delay)})
-                print(f"======================\ntotal_delay {total_delay}======================\n")
+                print(f"======================\ntotal_delay {total_delay}\======================")
                 payload = {
                         "task": {
                             "task_id": task.task_id,
@@ -76,7 +76,10 @@ async def worker():
                         "result": result  
                     }
                 try:
-                    url = "http://host.docker.internal:15000/catch_results"
+                    if sys.platform.startswith("darwin"):
+                        url = "http://host.docker.internal:15000/catch_results"
+                    elif sys.platform.startswith("linux"):
+                        url = "http://0.0.0.0:15000/catch_results"
                     async with httpx.AsyncClient(timeout=30) as client:
                         r = await client.post(url, json=payload)  # chỉ dùng json=payload
                         print(r.status_code, r.text)
