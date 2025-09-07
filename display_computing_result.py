@@ -24,9 +24,12 @@ class Task(BaseModel):
 app = FastAPI()
 
 df = {"task_id": [],
+      
     "arrival_time": [],
     "end_time": [],
     "total_delay": [],
+    "id_picture" : [],
+    "current_state_information" : [],
     "description": [],
     "compute_delay": [], #one task without waiting time
     "results": []
@@ -54,6 +57,8 @@ async def infer(payload: dict):
     df["description"].append(task["description"])
     df["compute_delay"].append(compute_delay)
     df["results"].append(result)
+    df["current_state_information"].append(task['current_state_information'])    
+    df["id_picture"].append(task['id_picture'])
 
     print(f"Received task {task['task_id']}: delay={task['total_delay']}, result={result}", flush=True)
     return JSONResponse("done")

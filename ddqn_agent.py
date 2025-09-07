@@ -21,9 +21,9 @@ class QNetwork(nn.Module):
         x = self.relu(x)
         x = self.fc3(x)  # fc3 activation
         # Chọn activation cuối: tanh hoặc softmax
-        x = torch.tanh(self.fc4(x))        # option 1: tanh
+        # x = torch.tanh(self.fc4(x))        # option 1: tanh
         # # x = F.softmax(self.fc4(x), dim=1)  # option 2: softmax nếu muốn xác suất
-        # x = self.fc4(x)
+        x = self.fc4(x)
         return x
 
 

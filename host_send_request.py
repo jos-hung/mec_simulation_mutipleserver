@@ -16,7 +16,7 @@ import re, time
 #     arrival_time: float
 #     end_time: float
 
-async def send_tasks(task_num, url, request = "", docker = None, id = None):
+async def send_tasks(task_num, url, request = "", docker = None, id = None, current_state_information = []):
     
     
     service_dir = "service"
@@ -77,9 +77,11 @@ async def send_tasks(task_num, url, request = "", docker = None, id = None):
             "docker": str(docker),
             'port_base': str(port),
             "arrival_time": current_time,
-            "end_time": 0.0
+            "end_time": 0.0,
+            "current_state_information": str(current_state_information)
+
         }
-        print(f"Sending task with id_picture={id_picture}, model={model}")
+        # print(f"Sending task with request {request} id_picture = {id_picture}, model={model}  --> {current_state_information}")
         async with httpx.AsyncClient(timeout=120) as client:
             response = await client.post(url, json=payload)  
             # print(response.json())
@@ -95,7 +97,8 @@ if __name__ == "__main__":
     # ap.add_argument("--host", type=str, default="0.0.0.0")
     ap.add_argument("--port", type=str, default="10000")
     ap.add_argument("--id", type=int, default=0, required=False)
+    ap.add_argument("--state", type=str, required=False, default=[])
     args = ap.parse_args()
     port = args.port
     asyncio.run(send_tasks(task_num=args.num, url=f"http://localhost:{port}/handle_host_request", 
-                        request=args.request, docker = args.docker, id = args.id))
+                        request=args.request, docker = args.docker, id = args.id, current_state_information = args.state))
