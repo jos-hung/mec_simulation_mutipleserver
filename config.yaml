@@ -6,7 +6,7 @@ server:
 
 services:
   resnet18:        ["127.0.0.1:1"]
-  resnet50:        ["127.0.0.1:2"]
+  # resnet50:        ["127.0.0.1:2"]
   # mobilenetv2:     ["127.0.0.1:3"]
   # efficientnet_b0: ["127.0.0.1:4"]
   # resnet34:        ["127.0.0.1:5"]

@@ -5,6 +5,7 @@ import os
 import yaml
 import json
 import re, time
+from utils import get_active_service
 # from pydantic import BaseModel
 
 # class Task(BaseModel):
@@ -16,56 +17,28 @@ import re, time
 #     arrival_time: float
 #     end_time: float
 
-async def send_tasks(task_num, url, request = "", docker = None, id = None, current_state_information = []):
+async def send_tasks(task_num, url, request = "", docker = None, id = None, current_state_information = [], model = "None", id_picture = None):
     
-    
-    service_dir = "service"
-    list_service_in_docker = {}
-
-    for filename in os.listdir(service_dir):
-        match = re.match(r"active_services_in_docker_(\d+)-th\.json", filename)
-        if match:
-            docker_id = int(match.group(1))
-            filepath = os.path.join(service_dir, filename)
-            with open(filepath, "r") as f:
-                data = json.load(f)
-                list_service_in_docker[docker_id] = list(data.keys())
-    list_docker = []
-    if len(list_service_in_docker) >0:
-        list_docker = list(list_service_in_docker.keys())
-
+    list_docker, list_service_in_docker = get_active_service()
     port_base = 10000
     
     cnt=0
     response = None
     while task_num:
-        # inter_arrival_time = np.random.exponential(1)
-        # print(f"Sleeping for {inter_arrival_time} seconds")
-        # await asyncio.sleep(inter_arrival_time)  # <-- async sleep
-
-        id_picture = np.random.randint(0, len(os.listdir("val2017")))
+        if id_picture is None:
+            id_picture = np.random.randint(0, len(os.listdir("val2017")))
         with open("config.yaml", "r") as f:
             cfg = yaml.safe_load(f)
-        model = "None"
-        print(list_docker, docker)
         docker = int(docker)
-        if docker is not None and len(list_docker) != 0:
-            if docker in list_docker:
-                model = np.random.choice(list_service_in_docker[docker])
-            else:
-                print(f"docker {docker} is not in list_docker, select randomly")
-                docker_ = np.random.choice(list_docker)
-                model = np.random.choice(list_service_in_docker[docker_])
-        elif docker is None and len(list_docker) != 0:
+        if docker is None and len(list_docker) != 0:
             docker = np.random.choice(list_docker)
-            model = np.random.choice(list_service_in_docker[docker])
-        else:
-            # TH len(list_docker) == 0
+        elif docker is None and len(list_docker) == 0:
             docker = 1 
             model = "None"
-            print(docker)
+        elif docker is not None and model == "None" and len(list_docker) != 0:
+            model = np.random.choice(list_service_in_docker[docker])
+            model = "None"
         port = int(port_base)+ int(docker)
-        print(f"---port {port}")
         
         current_time = time.time()
         if id is None:
@@ -97,8 +70,11 @@ if __name__ == "__main__":
     # ap.add_argument("--host", type=str, default="0.0.0.0")
     ap.add_argument("--port", type=str, default="10000")
     ap.add_argument("--id", type=int, default=0, required=False)
-    ap.add_argument("--state", type=str, required=False, default=[])
+    ap.add_argument("--state", type=str, required=False, default=[])    
+    ap.add_argument("--model", type=str, required=False)
+    ap.add_argument("--id_picture", type=str, required=False)
+
     args = ap.parse_args()
     port = args.port
     asyncio.run(send_tasks(task_num=args.num, url=f"http://localhost:{port}/handle_host_request", 
-                        request=args.request, docker = args.docker, id = args.id, current_state_information = args.state))
+                        request=args.request, docker = args.docker, id = args.id, current_state_information = args.state, model=args.model, id_picture=args.id_picture))

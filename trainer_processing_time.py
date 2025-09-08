@@ -48,47 +48,6 @@ def parse_state_info(state_str):
     except:
         return []
 
-df["model_code"] = df["results"].apply(encode_model)
-df["server_index"] = df["results"].apply(extract_server_port)
-df["state_list"] = df["current_state_information"].apply(parse_state_info)
-
-vectors = []
-total_delays = []
-
-for _, row in df.iterrows():
-    base_values = [row["id_picture"], row["model_code"], row["server_index"] + 1] 
-    state_values = row["state_list"]
-    
-    if len(state_values) % N_SERVER != 0:
-        raise ValueError(f"Số phần tử trong state_list không chia hết cho 4 (len={len(state_values)})")
-    
-    chunk_size = len(state_values) // N_SERVER
-    start = (row["server_index"]-1) * chunk_size
-    end = start + chunk_size
-    selected_state = state_values[start:end]
-    
-    vectors.append(base_values + selected_state)
-    total_delays.append(row["total_delay"])
-
-X = np.array(vectors, dtype=float)
-y = np.array(total_delays, dtype=float)
-
-
-
-
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-y_scaled = y.reshape(-1,1)
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y_scaled, test_size=0.2, random_state=42
-)
-
-X_train = torch.tensor(X_train, dtype=torch.float32)
-y_train = torch.tensor(y_train, dtype=torch.float32)
-X_test = torch.tensor(X_test, dtype=torch.float32)
-y_test = torch.tensor(y_test, dtype=torch.float32)
-
 
 class DelayPredictor(nn.Module):
     def __init__(self, input_dim=10):
@@ -119,97 +78,151 @@ class DelayPredictor(nn.Module):
     def forward(self, x):
         return self.net(x)
     
-model = DelayPredictor()
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+    def save_model(self, path="path.pth"):
+        torch.save(self.net.state_dict(), path)
 
-batch_size = 256 
-
-train_dataset = TensorDataset(X_train, y_train)
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
-num_epochs = 2000
-train_losses = []
-
-for epoch in range(num_epochs):
-    model.train()
-    epoch_loss = 0
-    for batch_X, batch_y in train_loader:
-        optimizer.zero_grad()
-        outputs = model(batch_X)
-        loss = criterion(outputs, batch_y)
-        loss.backward()
-        optimizer.step()
-        epoch_loss += loss.item() * batch_X.size(0)  
-    
-    epoch_loss /= len(train_loader.dataset)
-    train_losses.append(epoch_loss)
-    
-    if (epoch+1) % 10 == 0:
-        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {epoch_loss:.6f}")
+    def load_model(self, path="path.pth"):
+        self.net.load_state_dict(torch.load(path))
+        self.net.eval()
 
 
-model.eval()
-with torch.no_grad():
-    y_pred = model(X_test)
-    test_loss = criterion(y_pred, y_test)
-    print(f"Test MSE Loss: {test_loss.item():.6f}")
+if __name__ == "__main__":
 
-save_dir = "train_result"
-os.makedirs(save_dir, exist_ok=True)
+    df["model_code"] = df["results"].apply(encode_model)
+    df["server_index"] = df["results"].apply(extract_server_port)
+    df["state_list"] = df["current_state_information"].apply(parse_state_info)
 
-plt.figure(figsize=(8,5))
-plt.plot(range(1, num_epochs+1), train_losses, label="Train Loss")
-plt.xlabel("Epoch")
-plt.ylabel("MSE Loss")
-plt.title("Loss qua Epoch")
-plt.legend()
-plt.grid(True)
-plt.savefig(os.path.join(save_dir, "loss_curve.png"))
-plt.close()
+    vectors = []
+    total_delays = []
 
-plt.figure(figsize=(6,6))
-plt.scatter(y_test, y_pred, alpha=0.6)
-plt.plot([y_test.min(), y_pred.max()], [y_test.min(), y_pred.max()], 'r--', label="Ideal")
-plt.xlabel("Actual total_delay")
-plt.ylabel("Predicted total_delay")
-plt.title("Actual vs Predicted total_delay")
-plt.legend()
-plt.grid(True)
-plt.savefig(os.path.join(save_dir, "actual_vs_predicted_scatter.png"))
-plt.close()
+    for _, row in df.iterrows():
+        base_values = [row["id_picture"], row["model_code"], row["server_index"] + 1] 
+        state_values = row["state_list"]
+        
+        if len(state_values) % N_SERVER != 0:
+            raise ValueError(f"Số phần tử trong state_list không chia hết cho 4 (len={len(state_values)})")
+        
+        chunk_size = len(state_values) // N_SERVER
+        start = (row["server_index"]-1) * chunk_size
+        end = start + chunk_size
+        selected_state = state_values[start:end]
+        
+        vectors.append(base_values + selected_state)
+        total_delays.append(row["total_delay"])
 
-errors = y_test - y_pred
-plt.figure(figsize=(8,5))
-plt.hist(errors, bins=30, color='blue', alpha=0.7)
-plt.axvline(0, color='red', linestyle='--')
-plt.xlabel("Prediction Error (Predicted - Actual)")
-plt.ylabel("Frequency")
-plt.title("Histogram of Prediction Errors")
-plt.grid(True)
-plt.savefig(os.path.join(save_dir, "prediction_error_histogram.png"))
-plt.close()
+    X = np.array(vectors, dtype=float)
+    y = np.array(total_delays, dtype=float)
 
-plt.figure(figsize=(10,5))
-plt.plot(range(len(y_test)), y_test, label='Actual', color='blue', linewidth=2)
-plt.plot(range(len(y_pred)), y_pred, label='Predicted', color='orange', linewidth=2, alpha=0.8)
-plt.xlabel("Sample Index")
-plt.ylabel("total_delay")
-plt.title("Actual vs Predicted total_delay (Line Chart)")
-plt.legend()
-plt.grid(True)
-plt.savefig(os.path.join(save_dir, "actual_vs_predicted_line.png"))
-plt.close()
 
-plt.figure(figsize=(10,5))
-plt.plot(range(len(errors)), errors, label='Prediction Error', color='purple')
-plt.axhline(0, color='red', linestyle='--')
-plt.xlabel("Sample Index")
-plt.ylabel("Error (Predicted - Actual)")
-plt.title("Prediction Error Across Samples")
-plt.legend()
-plt.grid(True)
-plt.savefig(os.path.join(save_dir, "prediction_error_line.png"))
-plt.close()
 
-print(f"Tất cả hình đã lưu vào thư mục: {save_dir}")
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    y_scaled = y.reshape(-1,1)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_scaled, y_scaled, test_size=0.2, random_state=42
+    )
+
+    X_train = torch.tensor(X_train, dtype=torch.float32)
+    y_train = torch.tensor(y_train, dtype=torch.float32)
+    X_test = torch.tensor(X_test, dtype=torch.float32)
+    y_test = torch.tensor(y_test, dtype=torch.float32)
+
+
+            
+    model = DelayPredictor()
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    batch_size = 256 
+
+    train_dataset = TensorDataset(X_train, y_train)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    num_epochs = 2000
+    train_losses = []
+
+    for epoch in range(num_epochs):
+        model.train()
+        epoch_loss = 0
+        for batch_X, batch_y in train_loader:
+            optimizer.zero_grad()
+            outputs = model(batch_X)
+            loss = criterion(outputs, batch_y)
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item() * batch_X.size(0)  
+        
+        epoch_loss /= len(train_loader.dataset)
+        train_losses.append(epoch_loss)
+        
+        if (epoch+1) % 10 == 0:
+            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {epoch_loss:.6f}")
+
+
+
+    model.eval()
+    with torch.no_grad():
+        y_pred = model(X_test)
+        test_loss = criterion(y_pred, y_test)
+        print(f"Test MSE Loss: {test_loss.item():.6f}")
+
+    save_dir = "train_result"
+    os.makedirs(save_dir, exist_ok=True)
+    model.save_model(f"{save_dir}/pretrained_processing_estimation.pth")
+    plt.figure(figsize=(8,5))
+    plt.plot(range(1, num_epochs+1), train_losses, label="Train Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("MSE Loss")
+    plt.title("Loss qua Epoch")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir, "loss_curve.png"))
+    plt.close()
+
+    plt.figure(figsize=(6,6))
+    plt.scatter(y_test, y_pred, alpha=0.6)
+    plt.plot([y_test.min(), y_pred.max()], [y_test.min(), y_pred.max()], 'r--', label="Ideal")
+    plt.xlabel("Actual total_delay")
+    plt.ylabel("Predicted total_delay")
+    plt.title("Actual vs Predicted total_delay")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir, "actual_vs_predicted_scatter.png"))
+    plt.close()
+
+    errors = y_test - y_pred
+    plt.figure(figsize=(8,5))
+    plt.hist(errors, bins=30, color='blue', alpha=0.7)
+    plt.axvline(0, color='red', linestyle='--')
+    plt.xlabel("Prediction Error (Predicted - Actual)")
+    plt.ylabel("Frequency")
+    plt.title("Histogram of Prediction Errors")
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir, "prediction_error_histogram.png"))
+    plt.close()
+
+    plt.figure(figsize=(10,5))
+    plt.plot(range(len(y_test)), y_test, label='Actual', color='blue', linewidth=2)
+    plt.plot(range(len(y_pred)), y_pred, label='Predicted', color='orange', linewidth=2, alpha=0.8)
+    plt.xlabel("Sample Index")
+    plt.ylabel("total_delay")
+    plt.title("Actual vs Predicted total_delay (Line Chart)")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir, "actual_vs_predicted_line.png"))
+    plt.close()
+
+    plt.figure(figsize=(10,5))
+    plt.plot(range(len(errors)), errors, label='Prediction Error', color='purple')
+    plt.axhline(0, color='red', linestyle='--')
+    plt.xlabel("Sample Index")
+    plt.ylabel("Error (Predicted - Actual)")
+    plt.title("Prediction Error Across Samples")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir, "prediction_error_line.png"))
+    plt.close()
+
+    print(f"Tất cả hình đã lưu vào thư mục: {save_dir}")

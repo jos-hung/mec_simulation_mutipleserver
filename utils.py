@@ -2,8 +2,9 @@ import subprocess
 import re
 import docker
 import os
-import os
+import json
 
+N_SERVER = 4
 
 
 def parse_size(value_str):
@@ -91,3 +92,31 @@ def get_docker_metrics_by_name():
             print(f"Error parsing line {line}: {e}")
 
     return values
+
+def get_active_service():
+    service_dir = "service"
+    list_service_in_docker = {}
+
+    for filename in os.listdir(service_dir):
+        match = re.match(r"active_services_in_docker_(\d+)-th\.json", filename)
+        if match:
+            docker_id = int(match.group(1))
+            filepath = os.path.join(service_dir, filename)
+            with open(filepath, "r") as f:
+                data = json.load(f)
+                list_service_in_docker[docker_id] = list(data.keys())
+    list_docker = []
+    if len(list_service_in_docker) >0:
+        list_docker = list(list_service_in_docker.keys())
+    
+    return list_docker, list_service_in_docker
+
+
+def get_feature(obs, id_picture, model, docker):
+    #model index not title
+    chunk_size = len(obs) // N_SERVER
+    start = (docker-1) * chunk_size
+    end = start + chunk_size
+    feature = [id_picture, model, docker+1]
+    feature += obs[start:end]
+    return feature

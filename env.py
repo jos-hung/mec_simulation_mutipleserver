@@ -78,7 +78,7 @@ class OffloadingEnv(gym.Env):
             end = start + inter
             self.state += server_information_ram_cpu[start:end]
             self.state.append(len(queues[i]))
-            print(f"----------- {int(i)}",len(queues[int(i)]))
+            print(f"queue length ----------- {int(i)}",len(queues[int(i)]))
             if len(queues[i])>0:
                 self.all_queue_end = False
             
@@ -95,7 +95,7 @@ class OffloadingEnv(gym.Env):
                 for i in range(self.num_servers)]
         queues = await asyncio.gather(*queues)
         merged = {}
-        print(queues)
+        # print(queues)
         for q in queues:
             merged.update(q['results'])
         return merged

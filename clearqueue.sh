@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Số lượng docker
-NUM_DOCKERS=3
+NUM_DOCKERS=4
 PORT_BASE=10000  
 
 for i in $(seq 1 $NUM_DOCKERS); do

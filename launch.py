@@ -60,7 +60,7 @@ def lauch_service(port_base:int = 10000):
                 pros.append(proc)
             pids["services"].append(proc.pid)
             print(f"Started {model} at {host}:{port} (pid={proc.pid})")
-            time.sleep(2)  # stagger
+            time.sleep(0.2)  # stagger
 
 
     with open("pids.json", "w") as f:

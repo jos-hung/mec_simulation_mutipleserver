@@ -2,14 +2,14 @@
 
 docker build -f docker/Dockerfile -t mec_simulation:latest .
 
-N_SERVERS=3
+N_SERVERS=4
 BASE_PORT=10000
 OS_TYPE=$(uname)
 
 
 if [[ "$OS_TYPE" == "Linux" ]]; then
     TOTAL_CORES=$(nproc)
-    MAX_CORES_PER_DOCKER=3
+    MAX_CORES_PER_DOCKER=2
     cores=($(seq 0 $((TOTAL_CORES-1))))
 
     cores=($(seq 0 $((TOTAL_CORES-1))))
