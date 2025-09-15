@@ -13,6 +13,8 @@ import pandas as pd
 logger = logging.getLogger('uvicorn.error')
 logger.setLevel(logging.DEBUG)
 
+class RestartPayload(BaseModel):
+    name: str
 torch.set_num_threads(1)
 
 class Task(BaseModel):
@@ -35,31 +37,28 @@ df = {"task_id": [],
     "results": []
     }
 
-RESULT_FILE = "results.csv"
 
-def save_periodically(interval=10):
+def save_periodically(interval=10, file_name = 'results.csv'):
     while True:
         if df["task_id"]: 
-            pd.DataFrame(df).to_csv(RESULT_FILE, index=False)
+            pd.DataFrame(df).to_csv(file_name, index=False)
         time.sleep(interval)
 
-threading.Thread(target=save_periodically, args=(10,), daemon=True).start()
+# threading.Thread(target=save_periodically, args=(10,), daemon=True).start()
 
 
-def start_saver(interval=10):
-    t = threading.Thread(target=save_periodically, args=(interval,), daemon=True)
+def start_saver(interval=10, file_name="results.csv"):
+    t = threading.Thread(target=save_periodically, args=(interval,file_name), daemon=True)
     t.start()
     return t
 
-saver_thread = start_saver(10)
+# saver_thread = start_saver(10)
 
 @app.post("/restart_saver")
-async def restart_saver():
-    global saver_thread
-    if not saver_thread.is_alive():
-        saver_thread = start_saver(10)
-        return {"status": "saver thread restarted"}
-    return {"status": "saver thread already running"}
+async def restart_saver(payload: RestartPayload):
+   
+    saver_thread = start_saver(10, payload.name)
+    return {f"status": f"saver thread restarted {payload.name}"}
 
 
 @app.post("/catch_results")
