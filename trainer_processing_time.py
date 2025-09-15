@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import os
-df = pd.read_csv("results_colected_data_both_drl_and_non_drl.csv")
 N_SERVER = 4
 
 def encode_model(result_str):
@@ -56,17 +55,17 @@ class DelayPredictor(nn.Module):
             nn.Linear(input_dim, 64),
             nn.BatchNorm1d(64),
             nn.ReLU(),
-            # nn.Dropout(0.05),
+            # nn.Dropout(0.01),
 
             nn.Linear(64, 128),
             nn.BatchNorm1d(128),
             nn.ReLU(),
-            # nn.Dropout(0.05),
+            # nn.Dropout(0.01),
 
             nn.Linear(128, 256),
             nn.BatchNorm1d(256),
             nn.ReLU(),
-            # nn.Dropout(0.05),
+            nn.Dropout(0.1),
 
             nn.Linear(256, 128),
             nn.ReLU(),
@@ -87,7 +86,7 @@ class DelayPredictor(nn.Module):
 
 
 if __name__ == "__main__":
-
+    df = pd.read_csv("results_random.csv")
     df["model_code"] = df["results"].apply(encode_model)
     df["server_index"] = df["results"].apply(extract_server_port)
     df["state_list"] = df["current_state_information"].apply(parse_state_info)
@@ -133,14 +132,14 @@ if __name__ == "__main__":
             
     model = DelayPredictor()
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
-    batch_size = 256 
+    batch_size = 512 
 
     train_dataset = TensorDataset(X_train, y_train)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    num_epochs = 2000
+    num_epochs = 4000
     train_losses = []
 
     for epoch in range(num_epochs):

@@ -45,6 +45,23 @@ def save_periodically(interval=10):
 
 threading.Thread(target=save_periodically, args=(10,), daemon=True).start()
 
+
+def start_saver(interval=10):
+    t = threading.Thread(target=save_periodically, args=(interval,), daemon=True)
+    t.start()
+    return t
+
+saver_thread = start_saver(10)
+
+@app.post("/restart_saver")
+async def restart_saver():
+    global saver_thread
+    if not saver_thread.is_alive():
+        saver_thread = start_saver(10)
+        return {"status": "saver thread restarted"}
+    return {"status": "saver thread already running"}
+
+
 @app.post("/catch_results")
 async def infer(payload: dict):
     task = payload["task"]

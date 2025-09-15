@@ -110,3 +110,6 @@ class DDQNAgent:
         self.optimizer.load_state_dict(checkpoint["optimizer"])
         self.epsilon = checkpoint["epsilon"]
         print(f"Model loaded from {filepath}")
+        self.eps_min = 0
+        self.eps_decay = 0
+        self.epsilon = 0

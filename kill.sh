@@ -17,11 +17,11 @@ echo "Closing all other terminals except the current one..."
 current_pid=$$
 current_shell=$(basename "$SHELL")
 
-for pid in $(pgrep -x "$current_shell"); do
-    if [ "$pid" -ne "$current_pid" ]; then
-        kill -9 "$pid"
-    fi
-done
+# for pid in $(pgrep -x "$current_shell"); do
+#     if [ "$pid" -ne "$current_pid" ]; then
+#         kill -9 "$pid"
+#     fi
+# done
 
 # if [[ "$OSTYPE" == darwin* ]]; then
 #     current_app_pid=$(ps -p $$ -o ppid= | tr -d ' ')

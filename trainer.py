@@ -12,8 +12,13 @@ import torch
 from trainer_processing_time import DelayPredictor
 import pandas as pd
 N_SERVER = 4
+LGOBAL_SEED = 45
 
 df = {"id": [], "id_picture":[], "predict_cost": [] }
+rng = np.random.default_rng(LGOBAL_SEED)
+
+#drl,  random, estimated_process
+save_dir = "drl"
 
 def run(user=10, lamd=1.1, host="", port_base=10000, docker_min_max=[], duration=1000):
     list_docker, list_service_in_docker = get_active_service()
@@ -21,6 +26,7 @@ def run(user=10, lamd=1.1, host="", port_base=10000, docker_min_max=[], duration
     system_inter_arrival_rate = 1 / system_arrival_rate
     cnt = 0
     agent = DDQNAgent(28, N_SERVER)
+    # agent.load()
 
     # vì OffloadingEnv có async nên ta tạo 1 loop riêng trong thread
     env = asyncio.run(OffloadingEnv(num_servers=4).ainit()) if hasattr(OffloadingEnv, "ainit") else OffloadingEnv(num_servers=3)
@@ -37,46 +43,46 @@ def run(user=10, lamd=1.1, host="", port_base=10000, docker_min_max=[], duration
     fearture_vecs = get_feature(obs, id_picture=0, model=0, docker=1) #just for get size
     load_model_estimate_processing_time = DelayPredictor(input_dim=len(fearture_vecs))
     load_model_estimate_processing_time.load_model(f"{save_dir}/pretrained_processing_estimation.pth")
-
+    check_done  = 0
     while duration > 0:
-        event = np.random.exponential(system_inter_arrival_rate)
+        event = rng.exponential(system_inter_arrival_rate)
         time_sleep = event if event > 0 else 0
-        # ngủ sync luôn
+        # ngủ sync
         time.sleep(time_sleep)
 
         # chọn docker
-        # slected_docker = np.random.randint(docker_min_max[0], docker_min_max[1])
+        slected_docker = rng.integers(docker_min_max[0], docker_min_max[1])
         # slected_docker = agent.act(obs) + 1
         # if not (docker_min_max[0] <= slected_docker < docker_min_max[1]):
         #     raise ValueError("action is out of the selected range")
         # chon model
         
-        id_picture = np.random.randint(0, len(os.listdir("val2017")))
+        id_picture = rng.integers(0, len(os.listdir("val2017")))
 
-        model = np.random.choice(list_service_in_docker[1])
-        model_id = 0
-        if model =="ssd":
-            model_id = 9
-        start_time = time.perf_counter()
-        def select_server(obs):
-            slected_docker = 0            
-            min_processing_predicted_time = float('inf')
+        model = rng.choice(list_service_in_docker[1])
+        # model_id = 0
+        # if model =="ssd":
+        #     model_id = 9
+        # start_time = time.perf_counter()
+        # def select_server(obs):
+        #     slected_docker = 0            
+        #     min_processing_predicted_time = float('inf')
 
-            for i in range(N_SERVER):
-                fearture_vecs = np.array(get_feature(obs, id_picture, model_id, i+1)) #id docker from 1
-                fearture_vecs = np.reshape(fearture_vecs, (1, -1))
-                fearture_vecs = torch.from_numpy(fearture_vecs).float()
-                processing_predicted_time = load_model_estimate_processing_time(fearture_vecs)
-                if min_processing_predicted_time > processing_predicted_time:
-                    slected_docker = i+1
-                    min_processing_predicted_time = processing_predicted_time
-            return slected_docker
-        predict_cost = time.perf_counter() - start_time
-        df["id"].append(cnt)
-        df["id_picture"].append(id_picture)
-        df['predict_cost'].append(predict_cost)
+        #     for i in range(N_SERVER):
+        #         fearture_vecs = np.array(get_feature(obs, id_picture, model_id, i+1)) #id docker from 1
+        #         fearture_vecs = np.reshape(fearture_vecs, (1, -1))
+        #         fearture_vecs = torch.from_numpy(fearture_vecs).float()
+        #         processing_predicted_time = load_model_estimate_processing_time(fearture_vecs)
+        #         if min_processing_predicted_time > processing_predicted_time:
+        #             slected_docker = i+1
+        #             min_processing_predicted_time = processing_predicted_time
+        #     return slected_docker
+        # predict_cost = time.perf_counter() - start_time
+        # df["id"].append(cnt)
+        # df["id_picture"].append(id_picture)
+        # df['predict_cost'].append(predict_cost)
 
-        slected_docker = select_server(obs)
+        # slected_docker = select_server(obs)
 
         slected_port = port_base + slected_docker
 
@@ -123,8 +129,10 @@ def run(user=10, lamd=1.1, host="", port_base=10000, docker_min_max=[], duration
                         train_data.append(-float(re_val))
                         if re_val > 10:
                             done = True
-                        agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], done)
-                                            
+                            agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], True)
+                        else:
+                            agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], False)
+              
                         rewards.append(-float(re_val))
                         del queue[int(taskid)]
                         del_r_key.append(taskid)  
@@ -139,6 +147,9 @@ def run(user=10, lamd=1.1, host="", port_base=10000, docker_min_max=[], duration
             agent.update()
         asyncio.run(asyncio.to_thread(process_rewards))
         #====================
+        # if check_done >100:
+        #     done = True
+        #     check_done=0
         while done:
             print ("dang chay o day -----")
             #sau khi done thì vẫn còn các nhiệm vụ trong queue, phải chờ cho chúng kết thúc rồi ms chuyển qua epoch mới
@@ -152,7 +163,7 @@ def run(user=10, lamd=1.1, host="", port_base=10000, docker_min_max=[], duration
             plt.savefig('rewards.png')
             plt.close()
             agent.save()
-        
+        check_done += 1
 
         duration -= event
         cnt += 1
@@ -160,7 +171,7 @@ def run(user=10, lamd=1.1, host="", port_base=10000, docker_min_max=[], duration
 
 
 if __name__ == "__main__":
-    run(10, 1, "", 10000, [1, 5], 2000)
+    run(15, 1, "", 10000, [1, 5], 300)
     df = pd.DataFrame(df)
     df.to_csv("cost.csv", index=None)
 
