@@ -29,9 +29,9 @@ class QNetwork(nn.Module):
 
 class DDQNAgent:
     def __init__(self, state_size, action_size,
-                 lr=1e-4, gamma=0.95,
+                 lr=1e-5, gamma=0.95,
                  epsilon=1.0, eps_decay=0.995, eps_min=0.01,
-                 memory_size=10000, batch_size=64):
+                 memory_size=100000, batch_size=256):
         
         self.state_size = state_size
         self.action_size = action_size

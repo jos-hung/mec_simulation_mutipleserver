@@ -72,7 +72,10 @@ def load_model(name: str):
         preprocess = weights.transforms()
         classes = weights.meta["categories"]
     elif name == "maskrcnn":
-       pass
+        weights = models.detection.MaskRCNN_ResNet50_FPN_Weights.DEFAULT
+        model = models.detection.maskrcnn_resnet50_fpn(weights=weights).eval()
+        preprocess = weights.transforms()
+        classes = weights.meta["categories"]
     else:
         raise ValueError(f"Unsupported model: {name}")
     print(f"load model {name} has been completed!!!")

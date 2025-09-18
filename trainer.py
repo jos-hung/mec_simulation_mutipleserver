@@ -17,8 +17,10 @@ df = {"id": [], "id_picture":[], "predict_cost": [] }
 experiment_types = ["random", "drl_train", "drl_prediction", "esimated_processing_time"]
 
 def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration=1000, output_file = "results", N_SERVER = 4, experiment_type = 0, LGOBAL_SEED = 45):
+    list_docker, list_service_in_docker = get_active_service()
+    output_file = output_file + f"_{len(list_service_in_docker[1])}"
     os.makedirs(output_file, exist_ok=True)
-    payload = {"name": f"{output_file}/n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}.csv"}
+    payload = {"name": f"{output_file}/results_n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}.csv"}
     url = "http://127.0.0.1:15000/restart_saver"
     try:
         r = httpx.post(url, json=payload, timeout=30)
@@ -29,7 +31,6 @@ def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration=1000,
     
     
     rng = np.random.default_rng(LGOBAL_SEED)
-    list_docker, list_service_in_docker = get_active_service()
     system_arrival_rate = n_users * lamd
     system_inter_arrival_rate = 1 / system_arrival_rate
     cnt = 0
@@ -106,8 +107,8 @@ def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration=1000,
             "--model", str(model),
             "--id_picture", str(id_picture),
         ]
+        
         subprocess.Popen(cmd)
-
         # gọi các async trong thread
         next_state = asyncio.run(env.get_observation())
         # next_state = obs
@@ -134,12 +135,12 @@ def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration=1000,
                     if re_val != "None" and re_val is not None:
                         train_data = queue[int(taskid)]
                         train_data.append(-float(re_val))
-                        if re_val > 10:
+                        if re_val > 10 or (cnt > 0 and cnt%100 == 0 and experiment_types[experiment_type] == 'drl_train'):
                             done = True
                             agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], True)
                         else:
                             agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], False)
-              
+
                         rewards.append(-float(re_val))
                         del queue[int(taskid)]
                         del_r_key.append(taskid)  
@@ -158,7 +159,6 @@ def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration=1000,
         #     done = True
         #     check_done=0
         while done:
-            print ("dang chay o day -----")
             #sau khi done thì vẫn còn các nhiệm vụ trong queue, phải chờ cho chúng kết thúc rồi ms chuyển qua epoch mới
             asyncio.run(asyncio.to_thread(process_rewards))
         done = False
@@ -167,9 +167,17 @@ def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration=1000,
             plt.xlabel('Episode')
             plt.ylabel('Reward')
             plt.title('Reward')
-            plt.savefig(f'.{output_file}/rewards_{experiment_types[experiment_type]}.png')
+            plt.savefig(f'./{output_file}/rewards_{experiment_types[experiment_type]}.png')
             plt.close()
             agent.save()
+
+            payload = {"name": f"{output_file}/results_n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}.csv"}
+            url = "http://127.0.0.1:15000/restart_saver_no_reset_df"
+            try:
+                r = httpx.post(url, json=payload, timeout=30)
+                print(r.status_code, r.text)
+            except Exception as e:
+                print(f"cannot save file {e} existing...")
         check_done += 1
 
         duration -= event

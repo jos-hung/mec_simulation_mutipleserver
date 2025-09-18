@@ -16,7 +16,8 @@ logger.setLevel(logging.DEBUG)
 class RestartPayload(BaseModel):
     name: str
 torch.set_num_threads(1)
-
+saver_thread = None
+stop_event = threading.Event()
 class Task(BaseModel):
     task_id: int
     description: str
@@ -38,28 +39,51 @@ df = {"task_id": [],
     }
 
 
-def save_periodically(interval=10, file_name = 'results.csv'):
-    while True:
+def save_periodically(interval, file_name):
+    while not stop_event.is_set():
         if df["task_id"]: 
             pd.DataFrame(df).to_csv(file_name, index=False)
-        time.sleep(interval)
+            print(f"[Saver] Saved to {file_name}")
+        stop_event.wait(interval)  # dừng sớm nếu stop_event được set
 
-# threading.Thread(target=save_periodically, args=(10,), daemon=True).start()
-
-
-def start_saver(interval=10, file_name="results.csv"):
-    t = threading.Thread(target=save_periodically, args=(interval,file_name), daemon=True)
+def start_saver(interval, file_name):
+    t = threading.Thread(target=save_periodically, args=(interval, file_name), daemon=True)
     t.start()
     return t
 
-# saver_thread = start_saver(10)
+@app.post("/restart_saver_no_reset_df")
+async def restart_saver(payload: RestartPayload):
+    global saver_thread, stop_event
+    if saver_thread and saver_thread.is_alive():
+        stop_event.set()
+        saver_thread.join()
+
+    stop_event = threading.Event()
+    saver_thread = start_saver(10, payload.name)
+    print(f"reset saver without reset df already done!!!")
+    return {"status": f"saver thread restarted: , file: {payload.name}"}
 
 @app.post("/restart_saver")
 async def restart_saver(payload: RestartPayload):
-   
-    saver_thread = start_saver(10, payload.name)
-    return {f"status": f"saver thread restarted {payload.name}"}
+    global saver_thread, stop_event, df
+    df = {"task_id": [],
+    "arrival_time": [],
+    "end_time": [],
+    "total_delay": [],
+    "id_picture" : [],
+    "current_state_information" : [],
+    "description": [],
+    "compute_delay": [], #one task without waiting time
+    "results": []
+    }
+    if saver_thread and saver_thread.is_alive():
+        stop_event.set()
+        saver_thread.join()
 
+    stop_event = threading.Event()
+    saver_thread = start_saver(10, payload.name)
+    print(f"reset saver and reset df already done!!!")
+    return {"status": f"saver thread restarted: , file: {payload.name}"}
 
 @app.post("/catch_results")
 async def infer(payload: dict):
