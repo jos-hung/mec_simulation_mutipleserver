@@ -135,7 +135,7 @@ def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration=1000,
                     if re_val != "None" and re_val is not None:
                         train_data = queue[int(taskid)]
                         train_data.append(-float(re_val))
-                        if re_val > 10 or (cnt > 0 and cnt%100 == 0 and experiment_types[experiment_type] == 'drl_train'):
+                        if re_val > 10 or (cnt > 0 and cnt%200 == 0 and experiment_types[experiment_type] == 'drl_train'):
                             done = True
                             agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], True)
                         else:
@@ -178,6 +178,9 @@ def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration=1000,
                 print(r.status_code, r.text)
             except Exception as e:
                 print(f"cannot save file {e} existing...")
+        if cnt > 0 and cnt % 1000 == 0 and experiment_types[experiment_type] =='drl_train':
+            agent.update_target()
+            print("update target model succes!!!")
         check_done += 1
 
         duration -= event
