@@ -52,46 +52,56 @@ def parse_size(value_str):
             return float(value_str)
 
     except Exception as e:
-        print(f"⚠️ Warning: cannot parse '{value_str}': {e}")
+        print(f"Warning: cannot parse '{value_str}': {e}")
         return 0.0
 
 def get_docker_metrics_by_name():
-    # Lấy danh sách container
     result = subprocess.run(
         ["docker", "ps", "--format", "{{.Names}}"],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
     if result.returncode != 0:
         return []
-
     container_names = [name for name in result.stdout.splitlines() if name]
     container_names.sort(key=lambda name: int(re.search(r'(\d+)$', name).group(1) if re.search(r'(\d+)$', name) else 0))
+    try:
+        stats = subprocess.run(
+            ["docker", "stats", "--no-stream", "--format",
+            "{{.Name}} {{.CPUPerc}} {{.MemPerc}} {{.MemUsage}} {{.NetIO}}"], 
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+    except Exception as e:
+        print(f"Error running docker stats: {e}")
+    except:
+        print("Error running docker stats")
 
-    # Lấy stats tất cả container
-    stats = subprocess.run(
-        ["docker", "stats", "--no-stream", "--format",
-         "{{.Name}} {{.CPUPerc}} {{.MemPerc}} {{.MemUsage}} {{.NetIO}}"], 
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
-    if stats.returncode != 0:
+    if stats.stdout == "":
         return []
 
     values = []
-    for line in stats.stdout.splitlines():
-        if not line.startswith("mec"):
-            continue
-        parts = line.split()
-        try:
-            # parts = [Name, CPU%, MEM%, MemUsage, ..., NetIO1, ..., NetIO2, ...]
-            values.append(float(parts[1].strip('%')))
-            values.append(float(parts[2].strip('%')))
-            values.append(parts[3])  # MemUsage
-            values.append(parts[5])  # NetIO1
-            values.append(parts[7])  # NetIO2
-        except Exception as e:
-            print(f"Error parsing line {line}: {e}")
-
+    for container_name in container_names:
+        for line in stats.stdout.splitlines():
+            if not line.startswith("mec"):
+                continue
+            parts = line.split()
+            if parts[0] != container_name:
+                continue
+            # print(parts)
+            try:
+                # parts = [Name, CPU%, MEM%, MemUsage, ..., NetIO1, ..., NetIO2, ...]
+                values.append(float(parts[1].strip('%')))
+                values.append(float(parts[2].strip('%')))
+                values.append(parse_size(parts[3]))  # MemUsage
+                values.append(parse_size(parts[5]))  # NetIO1
+                values.append(parse_size(parts[6]))  # NetIO2
+                values.append(parse_size(parts[8]))  # NetIO2
+            except Exception as e:
+                print(f"Error parsing line {line}: {e}")
+    print("Docker metrics values:", values )
     return values
+
+def thread_func(container):
+    container["metrics"] = get_docker_metrics_by_name()
 
 def get_active_service():
     service_dir = "service"
