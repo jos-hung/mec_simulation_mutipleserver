@@ -95,8 +95,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         slected_port = port_base + slected_docker
         cmd = [
             sys.executable,
-            '-m',
-            "utils.host_send_request",
+            "host_send_request.py",
             "--request", "inference",
             "--num", "1",
             "--docker", str(slected_docker),

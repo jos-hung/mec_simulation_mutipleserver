@@ -85,7 +85,7 @@ class DelayPredictor(nn.Module):
 
 
 if __name__ == "__main__":
-    df = pd.read_csv("./output_file_3/results_n_server_4_n_user_10_random.csv")
+    df = pd.read_csv("./../output_file_3/results_n_server_4_n_user_10_random.csv")
     print(f"len df {len(df)}")
     df["model_code"] = df["results"].apply(encode_model)
     df["server_index"] = df["results"].apply(extract_server_port)
