@@ -143,6 +143,10 @@ async def handle_host_request(task: Task):
             return JSONResponse({
                 "results": "clear queue and results success"
             })
+        elif task.description == "ping":
+            return {"status": "pong", "task_id": task.task_id}
+        elif task.description == "train":   
+            pass
         return {"status": "success", "task_id": task.task_id}
 
     except Exception as e:

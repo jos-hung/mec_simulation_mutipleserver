@@ -17,12 +17,11 @@ def encode_model(result_str):
     try:
         result_dict = ast.literal_eval(result_str)
         model = result_dict.get("payload", {}).get("model", "")
-        if model == "ssd":
-            return 9
-        elif model == "resnet18":
-            return 0
-        else:
-            return -1
+        model_id = 0
+        if model =="ssd":
+            model_id = 9
+        elif model =="resnet34":
+            model_id = 3
     except:
         return -1
 
