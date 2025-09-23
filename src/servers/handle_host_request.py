@@ -2,8 +2,8 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 import subprocess, sys
-from servers.inference import inference
-from servers.launch import lauch_service
+from .inference import inference
+from .launch import lauch_service
 import json
 import os
 import asyncio, httpx
@@ -44,7 +44,8 @@ run_dict = {"install": [sys.executable, "launch.py"],
 queue = asyncio.Queue()
 results = asyncio.Queue()
 
-SERVICE_PATH = "/service" 
+
+SERVICE_PATH = "./../../service"
 
 worker_paused = asyncio.Event()
 worker_paused.set()
