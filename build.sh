@@ -43,7 +43,6 @@ for i in $(seq 1 $N_SERVERS); do
             mec_simulation:latest
 
     elif [[ "$OS_TYPE" == "Darwin" ]]; then
-        echo "Detected macOS  (no --network=host, using -p instead)"
         docker run -dit \
             -p $port:$port \
             -v ./val2017:/shared \
@@ -75,11 +74,13 @@ sleep 3
 for i in $(seq 1 $N_SERVERS); do
     port=$((BASE_PORT + i))
     echo "Sending install request to docker $i on port $port ..."
-    .venv/bin/python3 ./src/utils/host_send_request.py \
+    cd src
+    ../.venv/bin/python3 -m host_send_request \
         --request install \
         --num 1 \
         --docker $i \
         --port $port
+    cd ..
 done
 wait
 echo "All install requests sent."
