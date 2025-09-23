@@ -2,8 +2,8 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 import subprocess, sys
-from inference import inference
-from launch import lauch_service
+from servers.inference import inference
+from servers.launch import lauch_service
 import json
 import os
 import asyncio, httpx

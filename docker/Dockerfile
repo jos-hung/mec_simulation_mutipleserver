@@ -8,8 +8,6 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 
-COPY *.py ./src/
-COPY *.yaml ./src/
-COPY *.txt ./src/
-COPY *.sh ./src/
+COPY ./src .
+
 EXPOSE 10000

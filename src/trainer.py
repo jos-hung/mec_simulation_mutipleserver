@@ -2,16 +2,16 @@ import asyncio, argparse
 import httpx
 import numpy as np
 import re, sys, subprocess
-from env import OffloadingEnv
-from ddqn_agent import DDQNAgent
+from src.utils.env import OffloadingEnv
+from src.ddqn_agent import DDQNAgent
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use("Agg") 
 import time
-from utils import get_active_service, get_feature
+from src.utils.utils import get_active_service, get_feature
 import os
 import torch
-from trainer_processing_time import DelayPredictor
+from src.trainer_processing_time import DelayPredictor
 import pandas as pd
 N_SERVER = 4
 
