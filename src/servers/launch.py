@@ -9,14 +9,13 @@ import threading
 
 def lauch_service(port_base:int = 10000):
     # os.system("clear")
-    with open("config.yaml", "r") as f:
+    with open("./configs/config.yaml", "r") as f:
         cfg = yaml.safe_load(f)
 
     pids = {"services": [], "scheduler": None}
 
     log_dir = "logs"
     os.makedirs(log_dir, exist_ok=True)
-    # Launch scheduler (đọc config.yaml)
     
     str_lst = 100*(int(str(port_base)[-1])+1)
     print(f"------ str_lst {str_lst}")
@@ -24,7 +23,7 @@ def lauch_service(port_base:int = 10000):
     sch_port = int(cfg.get("scheduler", {}).get("port", 8000))
     sch_host = str(cfg.get("scheduler", {}).get("host", "0.0.0.0"))
     sch_port = port_base + sch_port +str_lst
-    proc = subprocess.Popen([sys.executable, "scheduler_proc.py", "--host", sch_host, "--port", str(sch_port)])
+    proc = subprocess.Popen([sys.executable, "./servers/scheduler_proc.py", "--host", sch_host, "--port", str(sch_port)])
     pids["scheduler"] = proc.pid
     print(f"Scheduler started (pid={proc.pid})")
     pros = []
@@ -54,7 +53,7 @@ def lauch_service(port_base:int = 10000):
             port = int(port_base)+ int(port)+ str_lst
             print(f"current port -------- {port_base} new port {port}")
             
-            cmd = [sys.executable, "infer_service_proc.py", "--model", model, "--host", host, "--port", str(port)]
+            cmd = [sys.executable, "./servers/infer_service_proc.py", "--model", model, "--host", host, "--port", str(port)]
             with open(f"{log_dir}/{model}_log.txt", "w") as log_file:
                 proc = subprocess.Popen(cmd, stderr=log_file)
                 pros.append(proc)

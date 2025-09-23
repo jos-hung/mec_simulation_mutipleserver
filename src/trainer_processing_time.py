@@ -17,12 +17,11 @@ def encode_model(result_str):
     try:
         result_dict = ast.literal_eval(result_str)
         model = result_dict.get("payload", {}).get("model", "")
-        if model == "ssd":
-            return 9
-        elif model == "resnet18":
-            return 0
-        else:
-            return -1
+        model_id = 0
+        if model =="ssd":
+            model_id = 9
+        elif model =="resnet34":
+            model_id = 3
     except:
         return -1
 
@@ -86,7 +85,7 @@ class DelayPredictor(nn.Module):
 
 
 if __name__ == "__main__":
-    df = pd.read_csv("./output_file_2/results_n_server_4_n_user_18_random.csv")
+    df = pd.read_csv("./../output_file_3/results_n_server_4_n_user_10_random.csv")
     print(f"len df {len(df)}")
     df["model_code"] = df["results"].apply(encode_model)
     df["server_index"] = df["results"].apply(extract_server_port)

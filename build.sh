@@ -43,7 +43,6 @@ for i in $(seq 1 $N_SERVERS); do
             mec_simulation:latest
 
     elif [[ "$OS_TYPE" == "Darwin" ]]; then
-        echo "Detected macOS  (no --network=host, using -p instead)"
         docker run -dit \
             -p $port:$port \
             -v ./val2017:/shared \
@@ -63,9 +62,9 @@ for i in $(seq 1 $N_SERVERS); do
     port=$((BASE_PORT + i))
     echo "Starting uvicorn inside container $container_name on port $port ..."
     if [[ "$OS_TYPE" == "Darwin" ]]; then
-        osascript -e "tell application \"Terminal\" to do script \"docker exec -it $container_name bash -c 'cd src && uvicorn handle_host_request:app --host 0.0.0.0 --port $port'\""
+        osascript -e "tell application \"Terminal\" to do script \"docker exec -it $container_name bash -c 'cd src && uvicorn servers.handle_host_request:app --host 0.0.0.0 --port $port'\""
     elif  [[ "$OS_TYPE" == "Linux" ]]; then
-        gnome-terminal -- bash -c "docker exec -it $container_name bash -c 'cd src && uvicorn handle_host_request:app --host 0.0.0.0 --port $port'; exec bash"
+        gnome-terminal -- bash -c "docker exec -it $container_name bash -c 'cd src && uvicorn servers.handle_host_request:app --host 0.0.0.0 --port $port'; exec bash"
     else
         echo "Unsupported OS: $OS_TYPE "
     fi
@@ -75,11 +74,13 @@ sleep 3
 for i in $(seq 1 $N_SERVERS); do
     port=$((BASE_PORT + i))
     echo "Sending install request to docker $i on port $port ..."
-    .venv/bin/python3 host_send_request.py \
+    cd src
+    ../.venv/bin/python3 -m host_send_request \
         --request install \
         --num 1 \
         --docker $i \
         --port $port
+    cd ..
 done
 wait
 echo "All install requests sent."

@@ -2,8 +2,8 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 import subprocess, sys
-from inference import inference
-from launch import lauch_service
+from .inference import inference
+from .launch import lauch_service
 import json
 import os
 import asyncio, httpx
@@ -44,7 +44,8 @@ run_dict = {"install": [sys.executable, "launch.py"],
 queue = asyncio.Queue()
 results = asyncio.Queue()
 
-SERVICE_PATH = "/service" 
+
+SERVICE_PATH = "./../../service"
 
 worker_paused = asyncio.Event()
 worker_paused.set()
@@ -112,6 +113,7 @@ async def handle_host_request(task: Task):
             with open(filename, "w") as f:
                 json.dump(list_active_service, f, indent=2)
         elif task.description == "inference":
+            print(f"Queue size before adding task: {queue.qsize()}")
             await queue.put(task)
             return {"status": "queued", "task_id": task.task_id,"current result": [] }
         elif task.description == "kill":
@@ -142,6 +144,10 @@ async def handle_host_request(task: Task):
             return JSONResponse({
                 "results": "clear queue and results success"
             })
+        elif task.description == "ping":
+            return {"status": "pong", "task_id": task.task_id}
+        elif task.description == "train":   
+            pass
         return {"status": "success", "task_id": task.task_id}
 
     except Exception as e:

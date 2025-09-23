@@ -13,3 +13,4 @@ pandas
 pydantic
 scikit-learn
 matplotlib
+gymnasium

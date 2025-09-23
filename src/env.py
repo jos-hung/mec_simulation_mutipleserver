@@ -3,10 +3,10 @@ from gymnasium import spaces
 import numpy as np
 import sys
 import asyncio, httpx
+from utils.utils_func import get_docker_metrics_by_name, thread_func
 from host_send_request import send_tasks
-from utils import get_docker_metrics_by_name
 from fastapi import FastAPI, Request
-
+import threading
 
 class OffloadingEnv(gym.Env):
     """
@@ -33,30 +33,35 @@ class OffloadingEnv(gym.Env):
         # State và cache Docker metrics
         self.state = None
         self._docker_metrics_cache = []
-        
+        self._docker_metrics_task = None
         self.all_queue_end = False
         
 
     async def ainit(self):
         """Khởi tạo async: chạy background task cập nhật Docker metrics"""
-        asyncio.create_task(self._update_docker_metrics_periodically())
+        if self._docker_metrics_task is None or self._docker_metrics_task.done():
+            self._docker_metrics_task = asyncio.create_task(
+                self._update_docker_metrics_periodically()
+            )
+            print("[Env] Docker metrics task started.", flush=True)
+        else:
+            print("[Env] Docker metrics task already running.", flush=True)
         return self
 
+
     async def _update_docker_metrics_periodically(self):
-        """Background task: cập nhật Docker metrics định kỳ"""
         while True:
             try:
-                from utils import get_docker_metrics_by_name  # giữ nguyên hàm gốc
-                metrics = await asyncio.to_thread(get_docker_metrics_by_name)
-                self._docker_metrics_cache = metrics
+                result_container = {}
+                # Chạy thread blocking an toàn
+                await asyncio.to_thread(thread_func, result_container)
+                self._docker_metrics_cache = result_container['metrics']
             except Exception as e:
-                print(f"[Docker Metrics Error] {e}")
+                print(f"[Docker Metrics Error] {e}", flush=True)
             await asyncio.sleep(self.update_interval)
 
     async def get_observation(self):
-        """Lấy state hiện tại: Docker metrics + queue lengths"""
-        # Lấy Docker metrics từ cache (nhanh)
-        
+        """Lấy state hiện tại: Docker metrics + queue lengths"""        
         async def fetch_queue(idx, host, port): 
             url = f"http://localhost:{port}/handle_host_request" 
             r = await send_tasks(task_num=1, url=url, request="state", docker=idx+1) 
@@ -65,7 +70,7 @@ class OffloadingEnv(gym.Env):
             return queue_list 
         queues = [fetch_queue(i, self.server_host[i], self.server_port[i]) for i in range(self.num_servers)] 
         queues = await asyncio.gather(*queues)
-        
+        print(self._docker_metrics_cache)
         server_information_ram_cpu = self._docker_metrics_cache.copy()
         if not server_information_ram_cpu:
             server_information_ram_cpu = np.random.uniform(0,1,size=self.num_servers*6).tolist()
@@ -127,12 +132,15 @@ class OffloadingEnv(gym.Env):
         capacities = self.state[self.num_servers:]
         print("Queues:", queue_lengths, "Capacities:", capacities)
         
-async def main():
-    env = OffloadingEnv(num_servers=3)
-    await env.ainit()
-    result = await env.get_observation()
+async def main_loop(env):
+    await env.ainit()  # chạy async init, tạo background task
+    while True:
+        result = await env.get_observation()
+        print("Observation:", result)
+        await asyncio.sleep(1)  # tránh busy loop
+
 if __name__ == "__main__":
-    while(1):
-        asyncio.run(main())
+    env = OffloadingEnv(num_servers=3)
+    asyncio.run(main_loop(env))
     
     

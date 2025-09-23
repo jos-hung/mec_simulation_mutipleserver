@@ -6,6 +6,7 @@ import yaml
 import json
 import re, time, sys
 import subprocess
+from host_send_request import send_tasks
 
 
 
@@ -20,17 +21,8 @@ def run(user=10, lamd = 1.1, host = "", port_base = 10000,docker_min_max =[], du
         slected_docker = np.random.randint(docker_min_max[0], docker_min_max[1])
         slected_port = port_base + slected_docker
         time.sleep(event)
-        cmd = [
-            sys.executable,
-            "host_send_request.py",
-            "--request", "inference",
-            "--num", "1",
-            "--docker", str(slected_docker),
-            "--port", str(slected_port),
-            "--id", str(cnt)
-        ]
-
-        proc = subprocess.Popen(cmd)
+        url=f"http://localhost:{slected_port}/handle_host_request"
+        asyncio.run(send_tasks(task_num=1, request = "inference", docker = slected_docker, url = url, id = cnt))
         duration -= event
         cnt+=1
         

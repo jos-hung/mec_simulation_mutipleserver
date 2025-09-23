@@ -7,6 +7,9 @@ __pycache__/
 *.so
 *.png
 *.json
+*.csv
+*.zip
+
 # Distribution / packaging
 .Python
 build/
@@ -14,12 +17,14 @@ develop-eggs/
 dist/
 downloads/
 eggs/
+val*/
 .eggs/
 lib/
 lib64/
 parts/
 sdist/
 var/
+.venv/
 wheels/
 pip-wheel-metadata/
 share/python-wheels/
