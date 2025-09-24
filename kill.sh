@@ -20,10 +20,10 @@ tell application "Terminal"
 end tell
 EOF
     else
-        pids=\$(ps -ef | grep "mec_simulation_$i" | grep -v grep | awk '{print \$2}')
-        if [ ! -z "\$pids" ]; then
-            echo "Killing PID(s): \$pids"
-            kill -9 \$pids
+        pids=$(ps -ef | grep "mec_simulation_$i" | grep -v grep | awk '{print $2}')
+        if [ -n "$pids" ]; then
+            echo "Killing PID(s): $pids"
+            kill -9 $pids
         fi
     fi
 done

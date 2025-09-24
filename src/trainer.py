@@ -52,7 +52,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
     rewards = []
     all_reward = {}
     agent = DDQNAgent(len(obs), N_SERVER)
-    if experiment_types[experiment_type] == 'drl_prediction':
+    if experiment_types[experiment_type].find('drl_prediction')!=-1:
         agent.load()
     done = False
     save_dir = "train_result"
@@ -157,7 +157,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
             #sau khi done thì vẫn còn các nhiệm vụ trong queue, phải chờ cho chúng kết thúc rồi ms chuyển qua epoch mới
             await asyncio.to_thread(process_rewards)
             if not done:
-                env.reset_history_task()
+                env.reset_historical_tasks()
         done = False
         if cnt > 0 and cnt % 100 == 0:
             plt.plot(rewards)
