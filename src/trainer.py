@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use("Agg") 
 import time
-from utils import get_active_service, get_feature
+from utils.utils_func import get_active_service, get_feature
 import os
 import torch
 from trainer_processing_time import DelayPredictor
@@ -20,7 +20,8 @@ experiment_types = ["random", "drl_train", "drl_prediction", "esimated_processin
 
 async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration=1000, output_file = "results", N_SERVER = 4, experiment_type = 0, LGOBAL_SEED = 45):
     list_docker, list_service_in_docker = get_active_service()
-    output_file = output_file + f"_{len(list_service_in_docker[1])}"
+    output_file = "./../"+output_file + f"_{len(list_service_in_docker[1])}"
+    print("output_file", output_file)
     os.makedirs(output_file, exist_ok=True)
     payload = {"name": f"{output_file}/results_n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}.csv"}
     url = "http://127.0.0.1:15000/restart_saver"
@@ -60,7 +61,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         event = rng.exponential(system_inter_arrival_rate)
         print(event)
         await asyncio.sleep(event)
-        id_picture = rng.integers(0, len(os.listdir("val2017")))
+        id_picture = rng.integers(0, len(os.listdir("./../val2017")))
 
         model = rng.choice(list_service_in_docker[1])
         if experiment_types[experiment_type] == 'random':
@@ -94,7 +95,8 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         slected_port = port_base + slected_docker
         cmd = [
             sys.executable,
-            "host_send_request.py",
+            '-m',
+            "utils.host_send_request",
             "--request", "inference",
             "--num", "1",
             "--docker", str(slected_docker),

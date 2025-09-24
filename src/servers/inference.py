@@ -7,7 +7,7 @@ import io
 SHARED_PATH = "/shared" 
 
 async def inference(id_picture:int, model:str, port_base:int = 10000):
-    with open("config.yaml", "r") as f:
+    with open("./configs/config.yaml", "r") as f:
         cfg = yaml.safe_load(f)
     cfg.get("scheduler").get("host", "")
     host = cfg.get('scheduler').get("host", "")

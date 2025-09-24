@@ -1,6 +1,5 @@
 import subprocess
 import re
-import docker
 import os
 import json
 
@@ -104,9 +103,8 @@ def thread_func(container):
     container["metrics"] = get_docker_metrics_by_name()
 
 def get_active_service():
-    service_dir = "service"
+    service_dir = "./../service"
     list_service_in_docker = {}
-
     for filename in os.listdir(service_dir):
         match = re.match(r"active_services_in_docker_(\d+)-th\.json", filename)
         if match:

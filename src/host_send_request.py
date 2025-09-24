@@ -5,17 +5,7 @@ import os
 import yaml
 import json
 import re, time
-from utils import get_active_service
-# from pydantic import BaseModel
-
-# class Task(BaseModel):
-#     task_id: int
-#     description: str
-#     inference: list = None
-#     docker: int
-#     port_base: int
-#     arrival_time: float
-#     end_time: float
+from utils.utils_func import get_active_service
 
 async def send_tasks(task_num, url, request = "", docker = None, id = None, current_state_information = [], model = "None", id_picture = None):
     
@@ -26,8 +16,8 @@ async def send_tasks(task_num, url, request = "", docker = None, id = None, curr
     response = None
     while task_num:
         if id_picture is None:
-            id_picture = np.random.randint(0, len(os.listdir("val2017")))
-        with open("config.yaml", "r") as f:
+            id_picture = np.random.randint(0, len(os.listdir("./../val2017")))
+        with open("./configs/config.yaml", "r") as f:
             cfg = yaml.safe_load(f)
         docker = int(docker)
         if docker is None and len(list_docker) != 0:

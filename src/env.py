@@ -3,8 +3,8 @@ from gymnasium import spaces
 import numpy as np
 import sys
 import asyncio, httpx
+from utils.utils_func import get_docker_metrics_by_name, thread_func
 from host_send_request import send_tasks
-from utils import get_docker_metrics_by_name, thread_func
 from fastapi import FastAPI, Request
 import threading
 
