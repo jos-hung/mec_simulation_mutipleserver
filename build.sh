@@ -61,8 +61,13 @@ for i in $(seq 1 $N_SERVERS); do
     container_name="mec_simulation_$i"
     port=$((BASE_PORT + i))
     echo "Starting uvicorn inside container $container_name on port $port ..."
-    if [[ "$OS_TYPE" == "Darwin" ]]; then
-        osascript -e "tell application \"Terminal\" to do script \"docker exec -it $container_name bash -c 'cd src && uvicorn servers.handle_host_request:app --host 0.0.0.0 --port $port'\""
+    if [[ "$OS" == "Darwin" ]]; then
+osascript <<EOF
+    tell application "Terminal"
+        do script "docker exec -it  $container_name bash -c 'cd src && uvicorn servers.handle_host_request:app --host 0.0.0.0 --port $port'"
+        set custom title of front window to "mec_simulation_$i"
+    end tell
+EOF
     elif  [[ "$OS_TYPE" == "Linux" ]]; then
         gnome-terminal --title="mec_simulation_$i" -- bash -c "docker exec -it $container_name bash -c 'cd src && uvicorn servers.handle_host_request:app --host 0.0.0.0 --port $port'; exec bash"
     else
