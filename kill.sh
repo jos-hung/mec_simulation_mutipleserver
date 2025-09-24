@@ -2,6 +2,7 @@
 N=4
 OS=$(uname)
 
+echo "Killing processes for $N terminal containers ..."
 for i in $(seq 1 $N); do
     if [[ "$OS" == "Darwin" ]]; then
         pids=$(pgrep -f "mec_simulation_$i")
