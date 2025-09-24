@@ -64,7 +64,7 @@ for i in $(seq 1 $N_SERVERS); do
     if [[ "$OS_TYPE" == "Darwin" ]]; then
         osascript -e "tell application \"Terminal\" to do script \"docker exec -it $container_name bash -c 'cd src && uvicorn servers.handle_host_request:app --host 0.0.0.0 --port $port'\""
     elif  [[ "$OS_TYPE" == "Linux" ]]; then
-        gnome-terminal -- bash -c "docker exec -it $container_name bash -c 'cd src && uvicorn servers.handle_host_request:app --host 0.0.0.0 --port $port'; exec bash"
+        gnome-terminal --title="mec_simulation_$i" -- bash -c "docker exec -it $container_name bash -c 'cd src && uvicorn servers.handle_host_request:app --host 0.0.0.0 --port $port'; exec bash"
     else
         echo "Unsupported OS: $OS_TYPE "
     fi

@@ -1,5 +1,14 @@
 #!/bin/bash
+#!/bin/bash
 
+# Số lượng MEC cần kill
+N=4
+
+for i in $(seq 1 $N); do
+    pkill -9 -f "mec_simulation_$i"
+done
+
+echo "Hoàn tất."
 if [ "$(docker ps -q)" ]; then
     echo "Stopping all Docker containers..."
     docker stop $(docker ps -q)
@@ -17,11 +26,6 @@ echo "Closing all other terminals except the current one..."
 current_pid=$$
 current_shell=$(basename "$SHELL")
 
-# for pid in $(pgrep -x "$current_shell"); do
-#     if [ "$pid" -ne "$current_pid" ]; then
-#         kill -9 "$pid"
-#     fi
-# done
 
 # if [[ "$OSTYPE" == darwin* ]]; then
 #     current_app_pid=$(ps -p $$ -o ppid= | tr -d ' ')
