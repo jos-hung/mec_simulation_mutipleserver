@@ -24,6 +24,7 @@ def encode_model(result_str):
             model_id = 3
     except:
         return -1
+    return model_id
 
 def extract_server_port(result_str):
     try:

@@ -62,7 +62,6 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         print(event)
         await asyncio.sleep(event)
         id_picture = rng.integers(0, len(os.listdir("./../val2017")))
-
         model = rng.choice(list_service_in_docker[1])
         if experiment_types[experiment_type] == 'random':
             slected_docker = rng.integers(docker_min_max[0], docker_min_max[1])
