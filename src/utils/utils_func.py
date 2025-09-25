@@ -96,7 +96,7 @@ def get_docker_metrics_by_name():
                 values.append(parse_size(parts[8]))  # NetIO2
             except Exception as e:
                 print(f"Error parsing line {line}: {e}")
-    print("Docker metrics values:", values )
+    # print("Docker metrics values:", values )
     return values
 
 def thread_func(container):

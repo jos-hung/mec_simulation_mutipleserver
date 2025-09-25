@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import os
+import joblib
 
 N_SERVER = 4
 
@@ -56,12 +57,12 @@ class DelayPredictor(nn.Module):
             nn.Linear(input_dim, 64),
             nn.BatchNorm1d(64),
             nn.ReLU(),
-            # nn.Dropout(0.01),
+            nn.Dropout(0.1),
 
             nn.Linear(64, 128),
             nn.BatchNorm1d(128),
             nn.ReLU(),
-            # nn.Dropout(0.01),
+            nn.Dropout(0.1),
 
             nn.Linear(128, 256),
             nn.BatchNorm1d(256),
@@ -72,7 +73,7 @@ class DelayPredictor(nn.Module):
             nn.ReLU(),
 
             nn.Linear(128, 1),
-            nn.Softplus()  # đảm bảo đầu ra không âm
+            nn.Softplus()  
         )
 
     def forward(self, x):
@@ -113,14 +114,11 @@ if __name__ == "__main__":
 
     X = np.array(vectors, dtype=float)
     y = np.array(total_delays, dtype=float)
-
-
-
-
     scaler = StandardScaler()
+
     X_scaled = scaler.fit_transform(X)
     y_scaled = y.reshape(-1,1)
-
+    
     X_train, X_test, y_train, y_test = train_test_split(
         X_scaled, y_scaled, test_size=0.2, random_state=42
     )
@@ -172,6 +170,8 @@ if __name__ == "__main__":
     save_dir = "train_result"
     os.makedirs(save_dir, exist_ok=True)
     model.save_model(f"{save_dir}/pretrained_processing_estimation.pth")
+    joblib.dump(scaler, f"{save_dir}/scaler.pkl")
+
     plt.figure(figsize=(8,5))
     plt.plot(range(1, num_epochs+1), train_losses, label="Train Loss")
     plt.xlabel("Epoch")
