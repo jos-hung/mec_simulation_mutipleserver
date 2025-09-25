@@ -68,8 +68,8 @@ def draw_server_service_distribution(df: pd.DataFrame, title: str):
     plt.ylabel('Server ID')
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.tight_layout()
-    title_ = title.replace("/","/server_distribtion_")
-    save_path_ = os.path.join(save_path, title_.replace(' ', '_') + "_.png")
+    title_ = title.replace("/","/server_distribtion_").replace(".csv",".png")
+    save_path_ = os.path.join(save_path, title_.replace(' ', '_'))
     plt.savefig(save_path_, dpi=300)
     plt.close()
     
@@ -98,8 +98,8 @@ def histogram(df: pd.DataFrame, column: str, title: str, path:str):
                    bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.7))
     plt.tight_layout()
     plt.tight_layout()
-    path_ = path.replace("/",f"/histogram_of_{column}_")
-    save_path_ = os.path.join(save_path, path_.replace(' ', '_') + "_.png")
+    path_ = path.replace("/",f"/histogram_of_{column}_").replace(".csv",".png")
+    save_path_ = os.path.join(save_path, path_.replace(' ', '_'))
     plt.savefig(save_path_, dpi=300)
     plt.close()
 def queueing_time_distribution(df: pd.DataFrame, title: str):
@@ -123,29 +123,24 @@ def queueing_time_distribution(df: pd.DataFrame, title: str):
 
         plt.grid(True, linestyle='--', alpha=0.5)
         plt.tight_layout()
-        title_ = title.replace("/", f"/queue_sequence_server_{s}_")
-        
+        title_ = title.replace("/", f"/queue_sequence_server_{s}_").replace(".csv",".png")
         histogram(data_draw,'service', 'queueing task type', title)
-        
-        save_path_ = os.path.join(save_path, title_.replace(' ', '_') + "_.png")
+        save_path_ = os.path.join(save_path, title_.replace(' ', '_'))
         plt.savefig(save_path_, dpi=300)
         plt.close()
-
-
-    
-    
-    
 def analyasis_file(dir_path,f):
     file = pd.read_csv(os.path.join(dir_path, f))
     file = add_server_service(file)
     file = file.sort_values(by ='task_id')
+    
     save_path_file = os.path.join(dir_path.split('/')[-1], f)
     os.makedirs(os.path.join(save_path, dir_path.split('/')[-1]), exist_ok=True)
     print(save_path_file)
     draw_server_service_distribution(file, save_path_file)
     queueing_time_distribution(file, save_path_file)
     histogram(file,'total_delay', 'total_delay', save_path_file)
-    file.to_csv(os.path.join(save_path, f), index=False)
+    file.to_csv(os.path.join(save_path, dir_path.split('/')[-1],f"add_queue_server_infor_{f}"), index=False)
+    
     
 def analysis(dir_path):
     full_dir_path = os.path.join(raw_path, dir_path)

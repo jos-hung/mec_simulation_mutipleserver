@@ -6,6 +6,8 @@ import asyncio, httpx
 from utils.utils_func import get_docker_metrics_by_name, thread_func
 from host_send_request import send_tasks
 from fastapi import FastAPI, Request
+from collections import deque
+
 import threading
 
 class OffloadingEnv(gym.Env):
@@ -35,8 +37,20 @@ class OffloadingEnv(gym.Env):
         self._docker_metrics_cache = []
         self._docker_metrics_task = None
         self.all_queue_end = False
+        self.use_history_task_observation = False
+        self.length_task_history = 5
+    def set_use_history_task_observation(self, value: bool):
+        self.use_history_task_observation = value
+        self.historical_tasks = [deque([-1] * self.length_task_history, maxlen=self.length_task_history) for _ in range(self.num_servers)]
+    
+    def reset_historical_tasks(self):
+        if self.use_history_task_observation:
+            self.historical_tasks = [deque([-1] * self.length_task_history, maxlen=self.length_task_history) for _ in range(self.num_servers)]
         
-
+    def update_historical_tasks(self, server_idx, task_idx):
+        if self.use_history_task_observation:
+            self.historical_tasks[server_idx].append(task_idx)
+    
     async def ainit(self):
         """Khởi tạo async: chạy background task cập nhật Docker metrics"""
         if self._docker_metrics_task is None or self._docker_metrics_task.done():
@@ -47,8 +61,6 @@ class OffloadingEnv(gym.Env):
         else:
             print("[Env] Docker metrics task already running.", flush=True)
         return self
-
-
     async def _update_docker_metrics_periodically(self):
         while True:
             try:
@@ -70,7 +82,7 @@ class OffloadingEnv(gym.Env):
             return queue_list 
         queues = [fetch_queue(i, self.server_host[i], self.server_port[i]) for i in range(self.num_servers)] 
         queues = await asyncio.gather(*queues)
-        print(self._docker_metrics_cache)
+        # print(self._docker_metrics_cache)
         server_information_ram_cpu = self._docker_metrics_cache.copy()
         if not server_information_ram_cpu:
             server_information_ram_cpu = np.random.uniform(0,1,size=self.num_servers*6).tolist()
@@ -86,7 +98,11 @@ class OffloadingEnv(gym.Env):
             print(f"queue length ----------- {int(i)}",len(queues[int(i)]))
             if len(queues[i])>0:
                 self.all_queue_end = False
-            
+            if self.use_history_task_observation:
+                self.state += list(self.historical_tasks[i])
+        
+        
+        
         return self.state
     def is_all_queue_end(self):
         return self.all_queue_end

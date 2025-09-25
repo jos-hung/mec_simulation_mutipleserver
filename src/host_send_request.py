@@ -17,7 +17,7 @@ async def send_tasks(task_num, url, request = "", docker = None, id = None, curr
     while task_num:
         if id_picture is None:
             id_picture = np.random.randint(0, len(os.listdir("./../val2017")))
-        with open("./configs/config.yaml", "r") as f:
+        with open("./../configs/config.yaml", "r") as f:
             cfg = yaml.safe_load(f)
         docker = int(docker)
         if docker is None and len(list_docker) != 0:

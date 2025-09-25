@@ -6,7 +6,7 @@ import uvicorn
 
 app = FastAPI()
 
-with open("./configs/config.yaml", "r") as f:
+with open("./../configs/config.yaml", "r") as f:
     cfg = yaml.safe_load(f)
 POOLS = {k.lower(): [f"http://{u}" for u in v] for k, v in cfg.get("services", {}).items()}
 ITER = {k: itertools.cycle(v) for k, v in POOLS.items() if v}

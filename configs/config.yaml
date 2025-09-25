@@ -19,3 +19,25 @@ services:
 scheduler:
   host: 0.0.0.0
   port: 11
+
+drl:
+  episodes: 1000
+  max_steps: 200
+  gamma: 0.99
+  epsilon_start: 1.0
+  epsilon_end: 0.1
+  epsilon_decay: 0.995
+  lr: 0.001
+  batch_size: 64
+  memory_size: 10000
+  target_update: 10
+  hidden_size: 128
+  model_path: "drl_model.pth"
+
+output:
+  base_name: "output_file"
+
+checkpoint:
+  interval: 50
+  model_path_dir: "ckpt"
+  

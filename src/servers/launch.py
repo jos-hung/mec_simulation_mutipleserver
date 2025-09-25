@@ -9,7 +9,7 @@ import threading
 
 def lauch_service(port_base:int = 10000):
     # os.system("clear")
-    with open("./configs/config.yaml", "r") as f:
+    with open("./../configs/config.yaml", "r") as f:
         cfg = yaml.safe_load(f)
 
     pids = {"services": [], "scheduler": None}

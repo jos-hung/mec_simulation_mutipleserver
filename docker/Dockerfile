@@ -8,5 +8,6 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 COPY ./src ./src/
+COPY ./configs ./configs/
 
 EXPOSE 10000
