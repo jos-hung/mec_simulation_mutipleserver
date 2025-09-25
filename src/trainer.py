@@ -12,6 +12,9 @@ from utils.utils_func import get_active_service, get_feature
 import os
 import torch
 from trainer_processing_time import DelayPredictor
+from sklearn.preprocessing import StandardScaler
+import joblib
+
 import pandas as pd
 N_SERVER = 4
 
@@ -61,6 +64,8 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         load_model_estimate_processing_time = DelayPredictor(input_dim=len(fearture_vecs))
         load_model_estimate_processing_time.load_model(f"{save_dir}/pretrained_processing_estimation.pth")
     check_done  = 0
+    scaler = joblib.load(f"{save_dir}/scaler.pkl")
+
     while duration > 0:
         event = rng.exponential(system_inter_arrival_rate)
         print(event)
@@ -84,6 +89,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
                 for i in range(N_SERVER):
                     fearture_vecs = np.array(get_feature(obs, id_picture, model_id, i+1)) #id docker from 1
                     fearture_vecs = np.reshape(fearture_vecs, (1, -1))
+                    fearture_vecs=scaler.transform(fearture_vecs)
                     fearture_vecs = torch.from_numpy(fearture_vecs).float()
                     processing_predicted_time = load_model_estimate_processing_time(fearture_vecs)
                     if min_processing_predicted_time > processing_predicted_time:
@@ -121,7 +127,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
             nonlocal rewards, all_reward, queue, cnt, done
             del_r_key = []
             asyncio.run(env.get_observation())
-            print("env.is_all_queue_end() ---------------> ",env.is_all_queue_end())
+            # print("env.is_all_queue_end() ---------------> ",env.is_all_queue_end())
             if done and env.is_all_queue_end():
                 done= False
             for taskid in list(all_reward.keys()):
@@ -133,7 +139,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
                     if re_val != "None" and re_val is not None:
                         train_data = queue[int(taskid)]
                         train_data.append(-float(re_val))
-                        if re_val > 10 or (cnt > 0 and cnt%100 == 0 and experiment_types[experiment_type] == 'drl_train'):
+                        if re_val > 15 or (cnt > 0 and cnt%200 == 0 and experiment_types[experiment_type] == 'drl_train'):
                             done = True
                             agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], True)
                         else:

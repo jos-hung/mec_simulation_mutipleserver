@@ -82,7 +82,7 @@ class OffloadingEnv(gym.Env):
             return queue_list 
         queues = [fetch_queue(i, self.server_host[i], self.server_port[i]) for i in range(self.num_servers)] 
         queues = await asyncio.gather(*queues)
-        print(self._docker_metrics_cache)
+        # print(self._docker_metrics_cache)
         server_information_ram_cpu = self._docker_metrics_cache.copy()
         if not server_information_ram_cpu:
             server_information_ram_cpu = np.random.uniform(0,1,size=self.num_servers*6).tolist()
