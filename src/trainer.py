@@ -180,7 +180,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
 
             payload = {"name": f"{output_file}/results_n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}_seed_{LGOBAL_SEED}.csv"}
 
-            url = "http://127.0.0.1:15000/restart_saver"
+            url = "http://127.0.0.1:15000/restart_saver_no_reset_df"
             try:
                 r = httpx.post(url, json=payload, timeout=30)
                 print(r.status_code, r.text)
