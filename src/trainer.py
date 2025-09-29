@@ -73,16 +73,18 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         id_picture = rng.integers(0, len(os.listdir("./../val2017")))
         model = rng.choice(list_service_in_docker[1])
         model_id = 0
+        start_time = time.perf_counter()
         if model =="ssd":
             model_id = 9
         elif model =="resnet34":
             model_id = 3
         if experiment_types[experiment_type] == 'random':
             slected_docker = rng.integers(docker_min_max[0], docker_min_max[1])
+            predict_cost = time.perf_counter() - start_time
         elif experiment_types[experiment_type].find('drl')!=-1:
-            slected_docker = agent.act(obs) + 1       
+            slected_docker = agent.act(obs) + 1
+            predict_cost = time.perf_counter() - start_time
         elif experiment_types[experiment_type] == 'esimated_processing_time':
-            start_time = time.perf_counter()
             def select_server(obs):
                 slected_docker = 0            
                 min_processing_predicted_time = float('inf')
@@ -97,10 +99,11 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
                         min_processing_predicted_time = processing_predicted_time
                 return slected_docker
             predict_cost = time.perf_counter() - start_time
-            df["id"].append(cnt)
-            df["id_picture"].append(id_picture)
-            df['predict_cost'].append(predict_cost)
+    
             slected_docker = select_server(obs)
+        df["id"].append(cnt)
+        df["id_picture"].append(id_picture)
+        df['predict_cost'].append(predict_cost)
         slected_port = port_base + slected_docker
         cmd = [
             sys.executable,
