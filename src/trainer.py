@@ -64,7 +64,8 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         load_model_estimate_processing_time = DelayPredictor(input_dim=len(fearture_vecs))
         load_model_estimate_processing_time.load_model(f"{save_dir}/pretrained_processing_estimation.pth")
     check_done  = 0
-    scaler = joblib.load(f"{save_dir}/scaler.pkl")
+    if experiment_types[experiment_type] == 'esimated_processing_time':
+        scaler = joblib.load(f"{save_dir}/scaler.pkl")
 
     while duration > 0:
         event = rng.exponential(system_inter_arrival_rate)
