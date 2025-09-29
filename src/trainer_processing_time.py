@@ -12,6 +12,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import os
 import joblib
+import os, io, time, argparse
 
 N_SERVER = 4
 
@@ -88,7 +89,12 @@ class DelayPredictor(nn.Module):
 
 
 if __name__ == "__main__":
-    df = pd.read_csv("./../output_file_4/results_n_server_4_n_user_15_random.csv")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n_users", default="10")
+    parser.add_argument("--seed", default="42")
+    args = parser.parse_args()
+    
+    df = pd.read_csv(f"./../output_file_3_service_{args.n_users}_users/results_n_server_4_n_user_{args.n_users}_random_seed_{args.seed}.csv")
     print(f"len df {len(df)}")
     df["model_code"] = df["results"].apply(encode_model)
     df["server_index"] = df["results"].apply(extract_server_port)
