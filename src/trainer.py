@@ -30,10 +30,10 @@ experiment_types = {
 
 async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration=1000, output_file = "results", N_SERVER = 4, experiment_type = 0, LGOBAL_SEED = 45):
     list_docker, list_service_in_docker = get_active_service()
-    output_file = "./../"+output_file + f"_{len(list_service_in_docker[1])}"
+    output_file = "./../"+output_file + f"_{len(list_service_in_docker[1])}_service_{n_users}_users"
     print("output_file", output_file)
     os.makedirs(output_file, exist_ok=True)
-    payload = {"name": f"{output_file}/results_n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}.csv"}
+    payload = {"name": f"{output_file}/results_n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}_seed_{LGOBAL_SEED}.csv"}
     url = "http://127.0.0.1:15000/restart_saver"
     try:
         r = httpx.post(url, json=payload, timeout=30)
@@ -178,13 +178,15 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
             plt.close()
             agent.save()
 
-            payload = {"name": f"{output_file}/results_n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}.csv"}
+            payload = {"name": f"{output_file}/results_n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}_seed_{LGOBAL_SEED}.csv"}
+
             url = "http://127.0.0.1:15000/restart_saver_no_reset_df"
             try:
                 r = httpx.post(url, json=payload, timeout=30)
                 print(r.status_code, r.text)
             except Exception as e:
                 print(f"cannot save file {e} existing...")
+                exit(0)
         check_done += 1
 
         duration -= event
