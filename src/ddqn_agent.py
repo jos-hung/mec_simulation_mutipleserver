@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-
-
+import yaml
+import os
 class QNetwork(nn.Module):
     def __init__(self, state_size, action_size, hidden_size=64):
         super(QNetwork, self).__init__()
@@ -26,6 +26,8 @@ class QNetwork(nn.Module):
         x = self.fc4(x)
         return x
 
+with open("./../configs/config.yaml", "r") as f:
+    cfg = yaml.safe_load(f)
 
 class DDQNAgent:
     def __init__(self, state_size, action_size,
@@ -96,15 +98,18 @@ class DDQNAgent:
         self.target_net.load_state_dict(self.q_net.state_dict())
         
     def save(self, filepath="ddqn_agent.pth"):
+        os.makedirs(cfg.get('checkpoint',"")['model_path_dir'],exist_ok=True)
+        pathckpt = os.path.join(cfg.get('checkpoint',"")['model_path_dir'], filepath)
         torch.save({
             "q_net": self.q_net.state_dict(),
             "target_net": self.target_net.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "epsilon": self.epsilon
-        }, filepath)
+        }, pathckpt)
         print(f"Model saved to {filepath}")
     def load(self, filepath="ddqn_agent.pth"):
-        checkpoint = torch.load(filepath, map_location=torch.device("cpu"))
+        pathckpt = os.path.join(cfg.get('checkpoint',"")['model_path_dir'], filepath)
+        checkpoint = torch.load(pathckpt, map_location=torch.device("cpu"))
         self.q_net.load_state_dict(checkpoint["q_net"])
         self.target_net.load_state_dict(checkpoint["target_net"])
         self.optimizer.load_state_dict(checkpoint["optimizer"])
