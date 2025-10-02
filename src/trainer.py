@@ -24,7 +24,7 @@ experiment_types = {
     1: 'drl_train',
     2: 'drl_prediction',
     3: 'esimated_processing_time',
-    4: 'drl_with_history_task_observation',
+    4: 'drl_train_with_history_task_observation',
     5: 'drl_prediction_with_history_task_observation'
 }
 
@@ -143,7 +143,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
                     if re_val != "None" and re_val is not None:
                         train_data = queue[int(taskid)]
                         train_data.append(-float(re_val))
-                        if re_val > 15 or (cnt > 0 and cnt%200 == 0 and experiment_types[experiment_type] == 'drl_train'):
+                        if re_val > 30 or (cnt > 0 and cnt%200 == 0 and experiment_types[experiment_type] == 'drl_train'):
                             done = True
                             agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], True)
                         else:
