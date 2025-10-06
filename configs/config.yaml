@@ -39,5 +39,5 @@ output:
 
 checkpoint:
   interval: 50
-  model_path_dir: "ckpt"
+  model_path_dir: "../ckpt"
   

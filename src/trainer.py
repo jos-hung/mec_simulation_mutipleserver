@@ -24,7 +24,7 @@ experiment_types = {
     1: 'drl_train',
     2: 'drl_prediction',
     3: 'esimated_processing_time',
-    4: 'drl_with_history_task_observation',
+    4: 'drl_train_with_history_task_observation',
     5: 'drl_prediction_with_history_task_observation'
 }
 
@@ -35,6 +35,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
     os.makedirs(output_file, exist_ok=True)
     payload = {"name": f"{output_file}/results_n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}_seed_{LGOBAL_SEED}.csv"}
     url = "http://127.0.0.1:15000/restart_saver"
+    drl_checkpoint = f'drl_servers_{N_SERVER}_service_{len(list_service_in_docker[1])}_n_users_{n_users}.pth'
     try:
         r = httpx.post(url, json=payload, timeout=30)
         print(r.status_code, r.text)
@@ -48,6 +49,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
     # vì OffloadingEnv có async nên ta tạo 1 loop riêng trong thread
     env = OffloadingEnv(num_servers=N_SERVER)
     if experiment_types[experiment_type].find('history_task_observation')!=-1:
+        drl_checkpoint = drl_checkpoint.split('.')[0]+ "_with_history.pth"
         env.set_use_history_task_observation(True)
     await env.ainit()
     obs = await env.get_observation()
@@ -56,7 +58,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
     all_reward = {}
     agent = DDQNAgent(len(obs), N_SERVER)
     if experiment_types[experiment_type].find('drl_prediction')!=-1:
-        agent.load()
+        agent.load(drl_checkpoint)
     done = False
     save_dir = "train_result"
     fearture_vecs = get_feature(obs, id_picture=0, model=0, docker=1) #just for get size
@@ -143,7 +145,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
                     if re_val != "None" and re_val is not None:
                         train_data = queue[int(taskid)]
                         train_data.append(-float(re_val))
-                        if re_val > 15 or (cnt > 0 and cnt%200 == 0 and experiment_types[experiment_type] == 'drl_train'):
+                        if re_val > 30 or (cnt > 0 and cnt%200 == 0 and experiment_types[experiment_type] == 'drl_train'):
                             done = True
                             agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], True)
                         else:
@@ -176,7 +178,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
             plt.title('Reward')
             plt.savefig(f'./{output_file}/rewards_{experiment_types[experiment_type]}.png')
             plt.close()
-            agent.save()
+            agent.save(drl_checkpoint)
 
             payload = {"name": f"{output_file}/results_n_server_{N_SERVER}_n_user_{n_users}_{experiment_types[experiment_type]}_seed_{LGOBAL_SEED}.csv"}
 
