@@ -56,7 +56,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
     queue = {}
     rewards = []
     all_reward = {}
-    agent = DDQNAgent(len(obs), N_SERVER)
+    agent = DDQNAgent(len(obs)+1, N_SERVER)
     if experiment_types[experiment_type].find('drl_prediction')!=-1:
         agent.load(drl_checkpoint)
     done = False
@@ -85,7 +85,9 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
             slected_docker = rng.integers(docker_min_max[0], docker_min_max[1])
             predict_cost = time.perf_counter() - start_time
         elif experiment_types[experiment_type].find('drl')!=-1:
-            slected_docker = agent.act(obs) + 1
+            obs_pre = obs.copy()
+            obs_pre.insert(0, model_id)
+            slected_docker = agent.act(obs_pre) + 1
             predict_cost = time.perf_counter() - start_time
         elif experiment_types[experiment_type] == 'esimated_processing_time':
             def select_server(obs):
@@ -123,7 +125,9 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         env.update_historical_tasks(slected_docker - 1, model_id)
         subprocess.Popen(cmd)
         next_state = await env.get_observation()
-        queue[cnt] = [obs.copy(), slected_docker - 1, next_state]
+        next_state_ = next_state.copy()
+        next_state_.insert(0, model_id)
+        queue[cnt] = [obs.copy().insert(0, model_id), slected_docker - 1, next_state_]
         obs = next_state
         reward = await env.get_reward()
         all_reward.update(reward)
