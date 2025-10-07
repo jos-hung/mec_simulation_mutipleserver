@@ -56,7 +56,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
     queue = {}
     rewards = []
     all_reward = {}
-    agent = DDQNAgent(len(obs)+1, N_SERVER)
+    agent = DDQNAgent(len(obs)+1, N_SERVER, batch_size = 512)
     if experiment_types[experiment_type].find('drl_prediction')!=-1:
         agent.load(drl_checkpoint)
     done = False
@@ -68,7 +68,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
     check_done  = 0
     if experiment_types[experiment_type] == 'esimated_processing_time':
         scaler = joblib.load(f"{save_dir}/scaler.pkl")
-
+    
     while duration > 0:
         event = rng.exponential(system_inter_arrival_rate)
         print(event)

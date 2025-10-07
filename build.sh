@@ -27,8 +27,6 @@ for i in $(seq 1 $N_SERVERS); do
     port=$((BASE_PORT + i))  
 
     echo "Starting container $container_name on port $port ..."
-
-
     if [[ "$OS_TYPE" == "Linux" ]]; then
         echo "Detected Linux "
         echo "Launching $container_name on cores ${docker_cores_list[$i]}"
@@ -50,7 +48,7 @@ for i in $(seq 1 $N_SERVERS); do
             --name "$container_name" \
             mec_simulation:latest
     else
-        echo "Unsupported OS: $OS_TYPE "
+        echo "Unsupported OS: $OS_TYPE."
     fi
             
 
@@ -61,7 +59,7 @@ for i in $(seq 1 $N_SERVERS); do
     container_name="mec_simulation_$i"
     port=$((BASE_PORT + i))
     echo "Starting uvicorn inside container $container_name on port $port ..."
-    if [[ "$OS" == "Darwin" ]]; then
+    if [[ "$OS_TYPE" == "Darwin" ]]; then
 osascript <<EOF
     tell application "Terminal"
         do script "docker exec -it  $container_name bash -c 'cd src && uvicorn servers.handle_host_request:app --host 0.0.0.0 --port $port'"

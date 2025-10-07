@@ -84,7 +84,7 @@ async def worker():
                         "result": result  
                     }
                 try:
-                    if sys.platform.startswith("darwin"):
+                    if sys.platform.startswith("Darwin"):
                         url = "http://host.docker.internal:15000/catch_results"
                     elif sys.platform.startswith("linux"):
                         url = "http://0.0.0.0:15000/catch_results"
@@ -92,7 +92,10 @@ async def worker():
                         r = await client.post(url, json=payload)  # chỉ dùng json=payload
                         print(r.status_code, r.text)
                 except:
-                    pass
+                    url = "http://host.docker.internal:15000/catch_results"
+                    async with httpx.AsyncClient(timeout=30) as client:
+                        r = await client.post(url, json=payload)  # chỉ dùng json=payload
+                        print(r.status_code, r.text)
             except Exception as e:
                 await results.put([task.task_id, "error", str(e)])
             finally:
