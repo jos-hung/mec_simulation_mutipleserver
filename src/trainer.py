@@ -127,7 +127,8 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         next_state = await env.get_observation()
         next_state_ = next_state.copy()
         next_state_.insert(0, model_id)
-        queue[cnt] = [obs.copy().insert(0, model_id), slected_docker - 1, next_state_]
+        obs.insert(0, model_id)
+        queue[cnt] = [obs, slected_docker - 1, next_state_]
         obs = next_state
         reward = await env.get_reward()
         all_reward.update(reward)
@@ -149,12 +150,11 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
                     if re_val != "None" and re_val is not None:
                         train_data = queue[int(taskid)]
                         train_data.append(-float(re_val))
-                        if re_val > 30 or (cnt > 0 and cnt%200 == 0 and experiment_types[experiment_type] == 'drl_train'):
+                        if re_val > 50 or (cnt > 0 and cnt%200 == 0 and experiment_types[experiment_type] == 'drl_train'):
                             done = True
                             agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], True)
                         else:
                             agent.remember(train_data[0], train_data[1], train_data[2], train_data[3], False)
-
                         rewards.append(-float(re_val))
                         del queue[int(taskid)]
                         del_r_key.append(taskid)  
