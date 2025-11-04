@@ -39,6 +39,8 @@ class OffloadingEnv(gym.Env):
         self.all_queue_end = False
         self.use_history_task_observation = False
         self.length_task_history = 5
+        self.varience = {}
+
     def set_use_history_task_observation(self, value: bool):
         self.use_history_task_observation = value
         self.historical_tasks = [deque([-1] * self.length_task_history, maxlen=self.length_task_history) for _ in range(self.num_servers)]
@@ -100,9 +102,6 @@ class OffloadingEnv(gym.Env):
                 self.all_queue_end = False
             if self.use_history_task_observation:
                 self.state += list(self.historical_tasks[i])
-        
-        
-        
         return self.state
     def is_all_queue_end(self):
         return self.all_queue_end
@@ -120,7 +119,47 @@ class OffloadingEnv(gym.Env):
         for q in queues:
             merged.update(q['results'])
         return merged
-        
+    
+    async def get_reward_by_queing_varience(self, taks_id, server_id):
+        async def fetch_queue(idx, host, port):
+            url = f"http://localhost:{port}/handle_host_request"
+            r = await send_tasks(task_num=1, url=url, request="result", docker=idx+1)
+            data = r.json()
+            return data
+        queues = [fetch_queue(i, self.server_host[i], self.server_port[i])
+                for i in range(self.num_servers)]
+        queues = await asyncio.gather(*queues)
+        self.varience
+        reward = {}
+        for idx, q in enumerate(queues):
+            if server_id == idx:
+                if idx in self.varience.keys():
+                    pre_data = self.varience[idx]
+                    n = pre_data['n']
+                    mean_old = pre_data['mean']
+                    M2 = pre_data['M2']
+
+                    n += 1
+                    mean = mean_old + (taks_id-mean_old)/n
+                    M2 =  (M2*(n-1) + (taks_id - mean_old)*(taks_id - mean))/n
+
+                    self.varience[idx] = {
+                        'M2': M2,
+                        'n': n,
+                        'mean': mean
+                    }
+                    reward[idx] = M2*0.9 + 0.1*len(queues[idx])
+                else:
+                    self.varience[idx] = {
+                        'M2': 0.0,
+                        'n': 1,
+                        'mean': taks_id
+                    }
+                    reward[idx] = 0.0*0.5 + 0.1*len(queues[idx])
+            else:
+                continue
+        return reward
+    
     def reset(self):
         self.state = np.concatenate([
             np.random.randint(0, self.max_queue//2, size=self.num_servers),

@@ -1,10 +1,23 @@
 #!/bin/bash
 
-num_users=(5 10)
+n_train_events=15000
+n_test_events=5000
+lamda=1
+
+num_users=(1 5 10 15)
 for item in "${num_users[@]}"; do
-    echo "Running simulation with $item users"
+
+    test_duration=$(( n_test_events / (lamda * item) ))
+    train_duration=$(( n_train_events / (lamda * item) ))
+
+    echo "Running simulation with $item users in duration $train_duration for training and $test_duration for testing"
+
+
+
+    #=============================
+
     # source clearqueue.sh
-    # ../.venv/bin/python3 trainer.py --n_users $item --lamd 1 --docker_min_max 1 5 --duration 1500 --output_file output_file --experiment_type 0 --LGOBAL_SEED 45
+    # ../.venv/bin/python3 trainer.py --n_users $item --lamd $lamda --docker_min_max 1 5 --duration 1500 --output_file output_file --experiment_type 0 --LGOBAL_SEED 45
 
     # sleep 30
     # ../.venv/bin/python3 trainer_processing_time.py --n_users $item --seed 45
@@ -13,45 +26,46 @@ for item in "${num_users[@]}"; do
     #=============================
     # sleep 3
     # source clearqueue.sh
-    # ../.venv/bin/python3 trainer.py --n_users $item --lamd 1 --docker_min_max 1 5 --duration 500 --output_file output_file --experiment_type 3 --LGOBAL_SEED 42
+    # ../.venv/bin/python3 trainer.py --n_users $item --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 3 --LGOBAL_SEED 42
     # sleep 10
     # source clearqueue.sh
-    # ../.venv/bin/python3 trainer.py --n_users $item --lamd 1 --docker_min_max 1 5 --duration 500 --output_file output_file --experiment_type 3 --LGOBAL_SEED 50
+    # ../.venv/bin/python3 trainer.py --n_users $item --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 3 --LGOBAL_SEED 50
     # sleep 10
     # source clearqueue.sh
-    # ../.venv/bin/python3 trainer.py --n_users $item --lamd 1 --docker_min_max 1 5 --duration 500 --output_file output_file --experiment_type 3 --LGOBAL_SEED 55
-    # #=============================
-    sleep 10
+    # ../.venv/bin/python3 trainer.py --n_users $item --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 3 --LGOBAL_SEED 55
+    
+    #=============================
+    sleep 60
     source clearqueue.sh
-    ../.venv/bin/python3 trainer.py --n_users $item --lamd 1 --docker_min_max 1 5 --duration 1500 --output_file output_file --experiment_type 1 --LGOBAL_SEED 45
+    ../.venv/bin/python3 trainer_with_variance.py --n_users $item --lamd $lamda --docker_min_max 1 5 --duration $train_duration --output_file output_file --experiment_type 1 --LGOBAL_SEED 45
 
-    # #=============================
+    #=============================
     #eval drl method
-    sleep 10
+    sleep 60
     source clearqueue.sh
-    ../.venv/bin/python3 trainer.py --n_users $item   --lamd 1 --docker_min_max 1 5 --duration 500 --output_file output_file --experiment_type 2 --LGOBAL_SEED 42
-    sleep 10
+    ../.venv/bin/python3 trainer_with_variance.py --n_users $item  --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 2 --LGOBAL_SEED 42
+    sleep 60
     source clearqueue.sh
-    ../.venv/bin/python3 trainer.py --n_users $item   --lamd 1 --docker_min_max 1 5 --duration 500 --output_file output_file --experiment_type 2 --LGOBAL_SEED 50
-    sleep 10
+    ../.venv/bin/python3 trainer_with_variance.py --n_users $item  --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 2 --LGOBAL_SEED 50
+    sleep 60
     source clearqueue.sh
-    ../.venv/bin/python3 trainer.py --n_users $item   --lamd 1 --docker_min_max 1 5 --duration 500 --output_file output_file --experiment_type 2 --LGOBAL_SEED 55
-    # #=============================
+    ../.venv/bin/python3 trainer_with_variance.py --n_users $item  --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 2 --LGOBAL_SEED 55
+    #=============================
 
     # sleep 30
     # source clearqueue.sh
-    # ../.venv/bin/python3 trainer.py --n_users $item --lamd 1 --docker_min_max 1 5 --duration 1500 --output_file output_file --experiment_type 4 --LGOBAL_SEED 45
+    # ../.venv/bin/python3 trainer.py --n_users $item --lamd $lamda --docker_min_max 1 5 --duration $train_duration --output_file output_file --experiment_type 4 --LGOBAL_SEED 45
     # #=============================
     # #drl with history task information
     # sleep 30
     # source clearqueue.sh
-    # ../.venv/bin/python3 trainer.py --n_users $item   --lamd 1 --docker_min_max 1 5 --duration 500 --output_file output_file --experiment_type 5 --LGOBAL_SEED 42
+    # ../.venv/bin/python3 trainer.py --n_users $item   --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 5 --LGOBAL_SEED 42
     # sleep 30
     # source clearqueue.sh
-    # ../.venv/bin/python3 trainer.py --n_users $item   --lamd 1 --docker_min_max 1 5 --duration 500 --output_file output_file --experiment_type 5 --LGOBAL_SEED 50
+    # ../.venv/bin/python3 trainer.py --n_users $item   --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 5 --LGOBAL_SEED 50
     # sleep 30
     # source clearqueue.sh
-    # ../.venv/bin/python3 trainer.py --n_users $item   --lamd 1 --docker_min_max 1 5 --duration 500 --output_file output_file --experiment_type 5 --LGOBAL_SEED 55
+    # ../.venv/bin/python3 trainer.py --n_users $item   --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 5 --LGOBAL_SEED 55
     # #=============================
     # sleep 30
 done
