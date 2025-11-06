@@ -14,6 +14,9 @@ import torch
 from trainer_processing_time import DelayPredictor
 from sklearn.preprocessing import StandardScaler
 import joblib
+from host_send_request import send_tasks
+
+import threading
 
 import pandas as pd
 N_SERVER = 4
@@ -69,7 +72,8 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
     check_done  = 0
     if experiment_types[experiment_type] == 'esimated_processing_time':
         scaler = joblib.load(f"{save_dir}/scaler.pkl")
-    
+    client = httpx.AsyncClient(http2=True)
+
     while duration > 0:
         event = rng.exponential(system_inter_arrival_rate)
         print(event)
@@ -107,10 +111,24 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
             predict_cost = time.perf_counter() - start_time
     
             slected_docker = select_server(obs)
+        t1 = time.perf_counter()
         df["id"].append(cnt)
         df["id_picture"].append(id_picture)
         df['predict_cost'].append(predict_cost)
         slected_port = port_base + slected_docker
+        # kwargs_ = {
+        #     'task_num': 1,
+        #     'url': f"http://localhost:{slected_port}/handle_host_request",
+        #     'request' : 'inference',
+        #     'docker': slected_docker,
+        #     'id': cnt,
+        #     'model': model,
+        #     'id_picture': id_picture,
+        #     'client': client
+        # }
+        # t = threading.Thread(target=send_tasks, kwargs=kwargs_)
+        # env.update_historical_tasks(slected_docker - 1, model_id)
+
         cmd = [
             sys.executable,
             "host_send_request.py",
@@ -125,6 +143,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         ]
         env.update_historical_tasks(slected_docker - 1, model_id)
         subprocess.Popen(cmd)
+
         next_state = await env.get_observation()
         next_state_ = next_state.copy()
         next_state_.insert(0, model_id)
@@ -132,8 +151,7 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
         queue[cnt] = [obs, slected_docker - 1, next_state_]
         reward = await env.get_reward()
         varience_reward = await env.get_reward_by_queing_varience(model_id, server_id = slected_docker -1)
-        varience_rewards = -sum(varience_reward.values())
-        print("Varience reward: ", varience_rewards)
+        varience_rewards = -varience_reward[slected_docker-1]
         agent.remember(obs, slected_docker - 1, next_state_, varience_rewards, False)
         all_reward.update(reward)
         all_varience_reward.append(varience_rewards)
@@ -159,7 +177,6 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
                     rewards.append(-float(re_val))
                     del queue[int(taskid)]
                     del_r_key.append(taskid)  
-                    print(f"---------> {re_val}")
                 except Exception as e:
                     print(f"Chua tim thay {taskid} {e}")
                     continue
@@ -170,11 +187,13 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
 
         await asyncio.to_thread(process_rewards)
         #====================
+        loop_after_done = False
         while done:
             #sau khi done thì vẫn còn các nhiệm vụ trong queue, phải chờ cho chúng kết thúc rồi ms chuyển qua epoch mới
             await asyncio.to_thread(process_rewards)
             if not done:
                 env.reset_historical_tasks()
+            loop_after_done = True
         done = False
         if cnt > 0 and cnt % 100 == 0:
             plt.plot(rewards)
@@ -197,7 +216,6 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
             url = "http://127.0.0.1:15000/restart_saver_no_reset_df"
             try:
                 r = httpx.post(url, json=payload, timeout=30)
-                print(r.status_code, r.text)
             except Exception as e:
                 print(f"cannot save file {e} existing...")
                 exit(0)
@@ -205,6 +223,50 @@ async def run(n_users=10, lamd=1.1, port_base=10000, docker_min_max=[], duration
 
         duration -= event
         cnt += 1
+        t2 = time.perf_counter()
+
+        ''' 
+        ==================================
+        boi vi delay cua chuong trinh, chung ta buoc phai co 1 conpensate task
+        thoi gian conpensate: t2-t1
+        so  luong task conpensate = (t2-t1)/inter_arr_rate
+        ==================================
+        '''
+        num_task_conpensate = int((t2-t1)/system_inter_arrival_rate)
+        print(f"time counter {t2-t1}","---------- >>> ",num_task_conpensate, system_inter_arrival_rate)
+        if not loop_after_done and num_task_conpensate:
+            for i in range(num_task_conpensate):
+                event = rng.exponential(system_inter_arrival_rate)
+                await asyncio.sleep(event)
+                id_picture = rng.integers(0, len(os.listdir("./../val2017")))
+                model = rng.choice(list_service_in_docker[1])
+                model_id = 0
+                start_time = time.perf_counter()
+                if model =="ssd":
+                    model_id = 9
+                elif model =="resnet34":
+                    model_id = 3
+                slected_docker = rng.integers(docker_min_max[0], docker_min_max[1])
+                slected_port = port_base + slected_docker
+                await env.get_reward_by_queing_varience(model_id, server_id = slected_docker -1)
+                cmd = [
+                    sys.executable,
+                    "host_send_request.py",
+                    "--request", "inference",
+                    "--num", "1",
+                    "--docker", str(slected_docker),
+                    "--port", str(slected_port),
+                    "--id", str(cnt),
+                    "--state", f"{obs}", #save to train predict processing time
+                    "--model", str(model),
+                    "--id_picture", str(id_picture),
+                ]
+                queue[cnt] = "not record"
+                env.update_historical_tasks(slected_docker - 1, model_id)
+                subprocess.Popen(cmd)
+                cnt += 1
+        if num_task_conpensate:
+            obs = await env.get_observation()
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()

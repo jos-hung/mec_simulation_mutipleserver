@@ -7,8 +7,7 @@ import json
 import re, time
 from utils.utils_func import get_active_service
 
-async def send_tasks(task_num, url, request = "", docker = None, id = None, current_state_information = [], model = "None", id_picture = None):
-    
+async def send_tasks(task_num, url, request = "", docker = None, id = None, current_state_information = [], model = "None", id_picture = None, client = None):
     list_docker, list_service_in_docker = get_active_service()
     port_base = 10000
     
@@ -45,11 +44,15 @@ async def send_tasks(task_num, url, request = "", docker = None, id = None, curr
 
         }
         # print(f"Sending task with request {request} id_picture = {id_picture}, model={model}  --> {current_state_information}")
-        async with httpx.AsyncClient(timeout=120) as client:
-            response = await client.post(url, json=payload)  
-            # print(response.json())
+        if client is not None:
+            response = await client.post(url, json=payload)
+        else:
+            async with httpx.AsyncClient(timeout=1, http2=True) as client:
+                response = await client.post(url, json=payload)  
+                # print(response.json())
         task_num -= 1
         cnt += 1
+
     return response
 if __name__ == "__main__":
     import asyncio

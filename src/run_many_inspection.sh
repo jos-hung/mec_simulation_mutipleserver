@@ -4,7 +4,7 @@ n_train_events=15000
 n_test_events=5000
 lamda=1
 
-num_users=(1 5 10 15)
+num_users=(20)
 for item in "${num_users[@]}"; do
 
     test_duration=$(( n_test_events / (lamda * item) ))
@@ -35,7 +35,7 @@ for item in "${num_users[@]}"; do
     # ../.venv/bin/python3 trainer.py --n_users $item --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 3 --LGOBAL_SEED 55
     
     #=============================
-    sleep 60
+    sleep 0
     source clearqueue.sh
     ../.venv/bin/python3 trainer_with_variance.py --n_users $item --lamd $lamda --docker_min_max 1 5 --duration $train_duration --output_file output_file --experiment_type 1 --LGOBAL_SEED 45
 
@@ -67,5 +67,5 @@ for item in "${num_users[@]}"; do
     # source clearqueue.sh
     # ../.venv/bin/python3 trainer.py --n_users $item   --lamd $lamda --docker_min_max 1 5 --duration $test_duration --output_file output_file --experiment_type 5 --LGOBAL_SEED 55
     # #=============================
-    # sleep 30
+    sleep 60
 done
